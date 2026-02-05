@@ -14,7 +14,8 @@
 </script>
 
 <div class="slider-control">
-    <label for={sliderId}>{label}: {value}</label>
+    <label for={sliderId}>{label}</label>
+    <label for={sliderId}>{value}</label>
     <input id={sliderId} type="range" min={min} max={max} value={value} on:input={handleInput} />
 </div>
 
@@ -22,10 +23,12 @@
     .slider-control {
         display: flex;
         align-items: center;
+        justify-content: center;
+        flex-direction: column;
         gap: 0.5rem;
         margin-bottom: 0.5rem;
     }
     input[type="range"] {
-        flex: 1;
+        flex: 0;
     }
 </style>

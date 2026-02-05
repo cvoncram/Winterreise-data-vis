@@ -28,6 +28,13 @@ frontend/build/
 frontend/.env
 frontend/.vercel
 frontend/package-lock.json
+# Output
+frontend/.output
+frontend/.vercel
+frontend/.netlify
+frontend/.wrangler
+frontend/.svelte-kit
+frontend/build
 
 # ----------------------------
 # Logs

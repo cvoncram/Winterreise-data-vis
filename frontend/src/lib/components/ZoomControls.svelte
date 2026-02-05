@@ -1,3 +1,5 @@
+<!-- deprecated, only sliderControl is used -->
+
 <script lang="ts">
     export let onZoomIn: () => void;
     export let onZoomOut: () => void;
