@@ -9,3 +9,7 @@ declare module 'verovio/esm' {
     }): string;
   }
 }
+declare module 'verovio/wasm' {
+  const createVerovioModule: any;
+  export default createVerovioModule;
+}
