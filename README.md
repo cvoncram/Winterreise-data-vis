@@ -1,11 +1,130 @@
-# MEI Performance Visualization Tool
+# Data-Vis Project
 
-This project is an interactive web application for visualizing and comparing
-performance data from multiple MEI files of the same musical work.
+This project is a web-based MEI viewer that fetches musical scores from a GitHub repository and displays them interactively. It consists of:
 
-It renders a canonical MEI score with Verovio and overlays performance data
-(timing, dynamics, articulation, etc.) extracted dynamically from a GitHub
-repository containing performance MEI files.
+- **Backend**: FastAPI server that fetches MEI files from GitHub.  
+- **Frontend**: SvelteKit app that renders the MEI files using Verovio.  
 
-The system is designed for musicological / digital humanities analysis of
-performance differences across many recordings of the same piece.
+---
+
+## Architecture
+
+Plain ASCII diagram of the flow:
+
+                 ┌──────────────┐
+                 │  Frontend    │
+                 │ (SvelteKit)  │
+                 └─────┬────────┘
+                       │
+         1. Request file list
+                       │
+                       ▼
+                 ┌──────────────┐
+                 │  Backend     │
+                 │ (FastAPI)    │
+                 └─────┬────────┘
+                       │
+         2. Fetch list of MEI
+                       │
+                       ▼
+                 ┌──────────────┐
+                 │ GitHub Repo  │
+                 │ (MEI files)  │
+                 └──────────────┘
+
+Flow steps:
+
+1. Frontend requests the list of files (`/db/scores-folder`) from the backend.
+2. Backend fetches the MEI file list from GitHub.
+3. Backend returns the list to the frontend.
+4. User selects a file in the frontend dropdown.
+5. Frontend requests that specific file from the backend (`/db/file?path=...`).
+6. Backend fetches the file content from GitHub and returns it.
+7. Frontend renders the MEI using Verovio.
+
+---
+
+## Backend (FastAPI)
+
+### Requirements
+
+Python >= 3.12
+
+Minimal required packages:
+
+    fastapi==0.128.6
+    PyJWT==2.11.0
+    requests==2.32.5
+    uvicorn==0.40.0
+
+Install with:
+
+    pip install -r requirements.txt
+
+### Running the Backend
+
+1. Configure your GitHub token and repository info in the backend code.
+2. Start the FastAPI server:
+
+       uvicorn main:app --reload
+
+- Backend listens on `http://127.0.0.1:8000`.
+- Endpoints:
+
+| Endpoint | Description |
+|----------|-------------|
+| `/db/scores-folder` | Returns JSON list of MEI files in GitHub folder. |
+| `/db/file?path=<file-path>` | Returns JSON containing the MEI file content. |
+
+---
+
+## Frontend (SvelteKit)
+
+### Requirements
+
+- Node.js >= 20  
+- npm >= 9 (or yarn/pnpm)
+
+All dependencies are listed in `package.json`. Install with:
+
+    npm install
+
+### Running the Frontend
+
+    npm run dev
+
+- Opens the app on `http://localhost:5173`.
+- Frontend communicates with backend via `/db` routes.
+
+### Proxy Configuration
+
+In `vite.config.js`, ensure the following to forward `/db` requests to the backend:
+
+    server: {
+      proxy: {
+        '/db': {
+          target: 'http://127.0.0.1:8000',
+          changeOrigin: true
+        }
+      }
+    }
+
+This ensures that requests like `/db/scores-folder` and `/db/file` are routed to FastAPI, while the frontend serves the UI.
+
+---
+
+## Using the App
+
+1. Open the frontend in your browser.  
+2. The MEI viewer loads a dropdown menu of scores from GitHub.  
+3. Select a file from the dropdown to display it in the viewer.  
+4. Use the sliders and page controls to adjust layout and navigate the score.
+
+---
+
+## Notes
+
+- This setup is **temporary**: the frontend requests GitHub files through the backend. In production, the backend could fetch directly without exposing folder paths.  
+- MEI files are rendered with [Verovio](https://www.verovio.org/).  
+- The frontend uses [Tailwind CSS](https://tailwindcss.com/) and [DaisyUI](https://daisyui.com/) for UI components.
+
