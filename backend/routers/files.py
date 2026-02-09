@@ -6,7 +6,7 @@ from config import OWNER, REPO, BRANCH
 
 router = APIRouter()
 
-@router.get("/file")
+@router.get("/db/file")
 def get_file(path: str):
     token = get_installation_token()
     url = f"https://api.github.com/repos/{OWNER}/{REPO}/contents/{path}?ref={BRANCH}"

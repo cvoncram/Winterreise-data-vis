@@ -9,10 +9,6 @@ app.include_router(files.router)
 app.include_router(scores.router)
 app.include_router(performances.router)
 
-OWNER = "cvoncram"
-REPO = "Winterreise-database-test"
-BRANCH = "main"
-
 BASE_DIR = Path(__file__).resolve().parent
 FAVICON_PATH = BASE_DIR / "static" / "favicon.png"
 

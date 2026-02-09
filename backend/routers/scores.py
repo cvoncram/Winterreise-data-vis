@@ -5,7 +5,7 @@ from config import OWNER, REPO, BRANCH
 
 router = APIRouter()
 
-@router.get("/scores-folder")
+@router.get("/db/scores-folder")
 def get_scores_tree():
     token = get_installation_token()
 

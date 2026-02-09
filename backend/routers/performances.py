@@ -7,7 +7,7 @@ from config import OWNER, REPO, BRANCH
 
 router = APIRouter()
 
-@router.get("/performances-folder")
+@router.get("/db/performances-folder")
 def get_tree():
     token = get_installation_token()
 
@@ -60,7 +60,7 @@ def get_tree():
 
     return root
 
-@router.get("/performances-list")
+@router.get("/db/performances-list")
 def get_performance_list():
     token = get_installation_token()
     url = f"https://api.github.com/repos/{OWNER}/{REPO}/contents/performances/performances.json"
