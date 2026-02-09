@@ -3,7 +3,7 @@ from github_auth import get_installation_token
 import requests
 import base64
 from fastapi import APIRouter
-from main import OWNER, REPO, BRANCH
+from config import OWNER, REPO, BRANCH
 
 router = APIRouter()
 
