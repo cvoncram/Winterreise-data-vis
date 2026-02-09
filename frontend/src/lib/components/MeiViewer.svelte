@@ -69,16 +69,18 @@
         viewportHeight = maxHeight;
     }
     
-    async function initMEI() {
+    function initMEI() {
         try {
-            const response = await fetch(src);
-            const mei = await response.text();
-            vrvToolkit.loadData(mei);
+            if (!src) throw new Error('No MEI data provided');
+            
+            vrvToolkit.loadData(src);
+            
         } catch (e: any) {
             error = e.message;
-            console.error(e);
+            console.error('MEI load error:', e);
         }
     }
+    
     
     function doLayout() {
         vrvToolkit.setOptions({
@@ -116,12 +118,11 @@
         }
     });
     
-    // Whenever `src` changes, reload the MEI
     $: if (toolkitReady && src) {
-        initMEI().then(() => {
-            doLayout();
-        });
+        initMEI();
+        doLayout();
     }
+    
     
     
 </script>
