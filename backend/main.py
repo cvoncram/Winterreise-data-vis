@@ -1,38 +1,21 @@
-# backend/main.py
-from fastapi import FastAPI, HTTPException, Query
-from fastapi.responses import FileResponse
 from pathlib import Path
-from fastapi.middleware.cors import CORSMiddleware
+from fastapi import FastAPI
+from fastapi.responses import FileResponse
+from routers import files, scores, performances
 
 app = FastAPI()
 
-# Allow Svelte dev server
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["http://localhost:8000"],
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+app.include_router(files.router)
+app.include_router(scores.router)
+app.include_router(performances.router)
 
-MAX_FILES = 40
+OWNER = "cvoncram"
+REPO = "Winterreise-database-test"
+BRANCH = "main"
 
+BASE_DIR = Path(__file__).resolve().parent
+FAVICON_PATH = BASE_DIR / "static" / "favicon.png"
 
-@app.get("/api/scores")
-async def list_scores(folder: str = Query(...)):
-    folder_path = Path(folder)
-
-    if not folder_path.exists() or not folder_path.is_dir():
-        raise HTTPException(status_code=400, detail="Folder not found")
-
-    files = [f.name for f in folder_path.glob("*.mei")]
-    return files[:MAX_FILES]
-
-
-@app.get("/api/scores/file")
-async def get_score_file(folder: str, filename: str):
-    file_path = Path(folder) / filename
-
-    if file_path.exists() and file_path.suffix == ".mei":
-        return FileResponse(file_path, media_type="application/xml")
-
-    raise HTTPException(status_code=404, detail="File not found")
+@app.get("/favicon.ico", include_in_schema=False)
+async def favicon():
+    return FileResponse(FAVICON_PATH)
