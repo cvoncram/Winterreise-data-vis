@@ -18,6 +18,7 @@ __pycache__/
 venv/
 backend/cache/
 backend/__pycache__/
+backend/winterreise-database-test.2026-02-09.private-key.pem
 
 # ----------------------------
 # Node / Svelte frontend
