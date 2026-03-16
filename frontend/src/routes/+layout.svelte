@@ -1,5 +1,6 @@
 <script lang="ts">
     import "../app.css";
+    let { children } = $props();
 </script>
 
 <svelte:head>
@@ -7,17 +8,17 @@
 
 <div class="navbar bg-base-100 shadow-sm">
     <div class="page-title">
-        <a href="/">Nemi's Visualisation tool 🦍</a>
+        <a href="/">MEI Visualisation tool</a>
     </div>
     <div class="nav-items">
         <a class="btn btn-accent" href="/scores">Scores</a>
-        <a class="btn btn-accent" href="/scores">Performances</a>
-        <a class="btn btn-accent" href="/scores">Analysis</a>
+        <a class="btn btn-accent" href="/performances">Performances</a>
+        <a class="btn btn-accent" href="/analysis">Analysis</a>
     </div>
 </div>
 
 <main>
-    <slot />
+    {@render children()}
 </main>
 
 <style global()>
