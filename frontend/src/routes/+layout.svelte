@@ -16,7 +16,7 @@
 
 <div class="navbar bg-base-100 shadow-sm">
     <div class="page-title">
-        <a href="/">MEI Visualisation tool</a>
+        <a class="btn btn-primary" href="/">MEI Visualisation tool</a>
     </div>
     <div class="nav-items">
         <a class="btn btn-accent" href="/scores">Scores</a>
@@ -43,6 +43,7 @@
         justify-self: start;
     }
 
+    /* maybe later
     .page-title a:hover {
         color: #e2e8f0;
         background-color: rgb(129 161 193);
@@ -50,6 +51,7 @@
         border-radius: 5px;
 
     }
+    */
     
     .nav-items {
         justify-self: center;
