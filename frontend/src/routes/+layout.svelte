@@ -1,9 +1,17 @@
 <script lang="ts">
-    import "../app.css";
-    let { children } = $props();
+	import "../app.css";
+	import { page } from "$app/state";
+
+	let { children } = $props();
+
+	const baseTitle = "MEI Visualization";
+	const title = $derived(
+		page.data.title ? `${page.data.title} | ${baseTitle}` : baseTitle
+	);
 </script>
 
 <svelte:head>
+	<title>{title}</title>
 </svelte:head>
 
 <div class="navbar bg-base-100 shadow-sm">

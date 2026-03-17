@@ -2,7 +2,7 @@
 
 ## Next steps
 
-- page title
+- page title ✅
 
 - display the song titles properly
 
