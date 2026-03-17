@@ -45,7 +45,9 @@
 
     .page-title a:hover {
         color: #e2e8f0;
-        background-color: rgba(25, 25, 207, 0.37);
+        background-color: rgb(129 161 193);
+        padding: 5px;
+        border-radius: 5px;
 
     }
     

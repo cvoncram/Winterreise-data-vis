@@ -1,6 +1,8 @@
 @import url('https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;500;600&display=swap');
 @import "tailwindcss";
-@plugin "daisyui";
+@plugin "daisyui" {
+  themes: light --default, dark --prefersdark, nord;
+}
 
 html, body {
   font-family: "EB Garamond", Georgia, serif;
