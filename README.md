@@ -7,43 +7,6 @@ This project is a web-based MEI viewer that fetches musical scores from a GitHub
 
 ---
 
-## Architecture
-
-Plain ASCII diagram of the flow:
-
-                 ┌──────────────┐
-                 │  Frontend    │
-                 │ (SvelteKit)  │
-                 └─────┬────────┘
-                       │
-         1. Request file list
-                       │
-                       ▼
-                 ┌──────────────┐
-                 │  Backend     │
-                 │ (FastAPI)    │
-                 └─────┬────────┘
-                       │
-         2. Fetch list of MEI
-                       │
-                       ▼
-                 ┌──────────────┐
-                 │ GitHub Repo  │
-                 │ (MEI files)  │
-                 └──────────────┘
-
-Flow steps:
-
-1. Frontend requests the list of files (`/db/scores-folder`) from the backend.
-2. Backend fetches the MEI file list from GitHub.
-3. Backend returns the list to the frontend.
-4. User selects a file in the frontend dropdown.
-5. Frontend requests that specific file from the backend (`/db/file?path=...`).
-6. Backend fetches the file content from GitHub and returns it.
-7. Frontend renders the MEI using Verovio.
-
----
-
 ## Backend (FastAPI)
 
 ### Requirements
@@ -52,21 +15,32 @@ Python >= 3.12
 
 Minimal required packages:
 
-    fastapi==0.128.6
-    PyJWT==2.11.0
-    requests==2.32.5
+    fastapi==0.128.3
     uvicorn==0.40.0
+    pydantic==2.12.5
+    pydantic_core==2.41.5
+    starlette==0.52.1
+    requests==2.32.5
+    PyJWT==2.11.0
+    anyio==4.12.1
+    cryptography==46.0.5
 
-Install with:
+Create and activate a virtual environment in /backend:
+
+    python3 -m venv venv
+    source venv/bin/activate    
+
+Install requirements:
 
     pip install -r requirements.txt
 
 ### Running the Backend
 
 1. Configure your GitHub token and repository info in the backend code.
-2. Start the FastAPI server:
+2. Activate the virtual environment (if you haven't done so already) and start the FastAPI server:
 
-       uvicorn main:app --reload
+    source venv/bin/activate
+    uvicorn main:app --reload
 
 - Backend listens on `http://127.0.0.1:8000`.
 - Endpoints:
