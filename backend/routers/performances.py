@@ -1,75 +1,141 @@
-import json
+# backend/routers/performances.py
+from fastapi import APIRouter, HTTPException
 from github_auth import get_installation_token
 import requests
-import base64
-from fastapi import APIRouter
+import re
+import json
 from config import OWNER, REPO, BRANCH
 
 router = APIRouter()
 
-@router.get("/db/performances-folder")
-def get_tree():
+# -------------------------------
+# Helper functions
+# -------------------------------
+
+def format_filename(name: str) -> str:
+    """
+    Convert raw filename to a user-friendly label.
+    - Remove extension
+    - Replace underscores with spaces
+    - Replace hyphens with dots
+    """
+    name = re.sub(r"\.[^/.]+$", "", name)  # remove extension
+    name = re.sub(r"[-]", ". ", name)
+    name = re.sub(r"[_]", " ", name)
+    return name
+
+def extract_number(name: str) -> int:
+    """
+    Extract leading number from filename for sorting
+    """
+    match = re.match(r"^\d+", name)
+    return int(match.group()) if match else 0
+
+def get_performances_json() -> list[dict]:
+    """
+    Fetch and parse performances.json from the repo
+    """
     token = get_installation_token()
-
-    url = f"https://api.github.com/repos/{OWNER}/{REPO}/git/trees/{BRANCH}?recursive=1"
-
-    headers = {
-        "Authorization": f"token {token}",
-        "Accept": "application/vnd.github+json",
-    }
-    print(url)
-
-    r = requests.get(url, headers=headers)
-    r.raise_for_status()
-
-    tree_items = r.json()["tree"]
-
-    # ---- Build nested folder structure ----
-    root = {}
-
-    prefix = "performances/"
-
-    for item in tree_items:
-        path = item["path"]
-
-        # Only include files/folders under /scores
-        if not path.startswith(prefix):
-            continue
-
-        # Remove the 'scores/' prefix
-        relative_path = path[len(prefix):]
-
-        # Skip if path is empty (this can happen if there’s a folder named 'scores')
-        if not relative_path:
-            continue
-
-        parts = path.split("/")
-        node = root
-
-        for part in parts[:-1]:
-            node = node.setdefault(part, {})
-
-        if item["type"] == "blob":
-            node[parts[-1]] = {
-                "type": "file",
-                "sha": item["sha"],
-                "path": path,
-            }
-        else:
-            node.setdefault(parts[-1], {})
-
-    return root
-
-@router.get("/db/performances-list")
-def get_performance_list():
-    token = get_installation_token()
-    url = f"https://api.github.com/repos/{OWNER}/{REPO}/contents/performances/performances.json"
-
+    url = f"https://api.github.com/repos/{OWNER}/{REPO}/contents/performances/performances.json?ref={BRANCH}"
     headers = {"Authorization": f"token {token}"}
 
     r = requests.get(url, headers=headers)
     r.raise_for_status()
+    content_b64 = r.json()["content"]
+    import base64
+    content = base64.b64decode(content_b64).decode()
+    return json.loads(content)
 
-    content_str = base64.b64decode(r.json()["content"]).decode()
-    content_json = json.loads(content_str)
-    return content_json
+# -------------------------------
+# Endpoint 1: List all recordings
+# -------------------------------
+
+@router.get("/db/performances")
+def list_performances():
+    """
+    Return a list of recording folders (recordings) in /performances,
+    enriched with info from performances.json for friendly labels.
+    """
+    token = get_installation_token()
+    url = f"https://api.github.com/repos/{OWNER}/{REPO}/contents/performances?ref={BRANCH}"
+    headers = {"Authorization": f"token {token}"}
+
+    r = requests.get(url, headers=headers)
+    r.raise_for_status()
+    items = r.json()
+
+    # Only include directories (recordings)
+    folders = [item["name"] for item in items if item["type"] == "dir"]
+
+    # Fetch performances.json metadata
+    performances_json = get_performances_json()
+
+    enriched = []
+    for folder_name in folders:
+        # Try to find the matching metadata entry
+        # Matching by folder name: e.g., 1948_Billing or 1950_Mueller_Berlin
+        perf_meta = next(
+            (
+                p for p in performances_json
+                if folder_name.startswith(str(int(p["Recording Year"]))) and p["Pianist"].split(",")[0] in folder_name
+            ),
+            {}
+        )
+        # Construct friendly label
+        year = int(perf_meta.get("Recording Year", 0)) if perf_meta else None
+        pianist = perf_meta.get("Pianist", "").split(",")[0] if perf_meta else folder_name.split("_")[1]
+        city = perf_meta.get("City", "") if perf_meta and "City" in perf_meta else ""
+
+        label = f"{pianist} {year}" if year else folder_name
+        if city:
+            label += f", {city}"
+
+        enriched.append({
+            "path": folder_name,
+            "label": label
+        })
+
+    return sorted(enriched, key=lambda x: x["label"])
+
+# -------------------------------
+# Endpoint 2: List pieces inside a recording
+# -------------------------------
+
+@router.get("/db/performance-files")
+def list_performance_files(performance: str):
+    """
+    Return all MEI files inside a recording folder, with friendly labels and order.
+    Filenames are assumed to follow: folder_name_number_audio_data.xml
+    """
+    token = get_installation_token()
+    url = f"https://api.github.com/repos/{OWNER}/{REPO}/contents/performances/{performance}?ref={BRANCH}"
+    headers = {"Authorization": f"token {token}"}
+
+    r = requests.get(url, headers=headers)
+    if r.status_code == 404:
+        raise HTTPException(status_code=404, detail="Recording not found")
+    r.raise_for_status()
+    items = r.json()
+
+    files = []
+    for item in items:
+        if item["type"] == "file" and item["name"].endswith(".xml"):
+            filename = item["name"]
+
+            # Extract the piece number from the filename
+            match = re.search(r"_(\d+)_", filename)
+            piece_num = int(match.group(1)) if match else 0
+
+            # Create a nice label
+            label = f"Piece {piece_num}"
+
+            files.append({
+                "name": filename,
+                "path": item["path"],
+                "label": label,
+                "order": piece_num
+            })
+
+    # Sort by piece number
+    files_sorted = sorted(files, key=lambda f: f["order"])
+    return files_sorted
