@@ -8,9 +8,9 @@
 
 - scores: changes to settings only when user releases the slider, not in "real time" ✅
 
-- fetch performances from repo API
+- fetch performances from repo API ✅
 
-- display performances in rudimentary fashion (simple tables for now?)
+- display performances in rudimentary fashion (simple tables for now?) ✅
 
 ## In the middle term
 

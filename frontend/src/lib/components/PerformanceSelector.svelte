@@ -20,7 +20,7 @@
   <div class="flex gap-6 max-w-4xl w-full flex-wrap">
     <div class="flex-1 bg-base-100 p-4 rounded-lg shadow flex flex-col justify-center items-center overflow-visible">
       <label class="label w-full flex flex-col items-center">
-        <span class="label-text mb-2 text-lg font-semibold">Select Recording</span>
+        <span class="label-text mb-2 text-lg font-semibold">Select performance</span>
         <select
           class="select select-bordered w-full"
           bind:value={selectedRecording}
