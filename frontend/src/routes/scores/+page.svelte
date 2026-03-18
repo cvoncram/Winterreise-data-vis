@@ -2,8 +2,14 @@
   import { onMount } from 'svelte';
   import ScoreSelector from '$lib/components/ScoreSelector.svelte';
   import MeiViewer from '$lib/components/MeiViewer.svelte';
+
+  type FileItem = {
+    path: string;
+    label: string;
+    order?: number;
+  };
   
-  let files: string[] = [];
+  let files: FileItem[] = [];
   let selectedFile: string | null = null;
   let meiContent: string | null = null;
   let error: string = '';
@@ -12,7 +18,7 @@
     try {
       // IMPORTANT: backend expects `path`, not `filename`
       const res = await fetch(
-      `/db/file?path=${encodeURIComponent(`scores/${file}`)}`
+      `/db/file?path=${encodeURIComponent(file)}`
       );
       
       if (!res.ok) throw new Error('Could not fetch MEI file');
@@ -38,11 +44,8 @@
       if (!res.ok) throw new Error('Could not fetch file list');
       const data = await res.json();
       
-      files = Object.keys(data); // <-- convert object keys to array
-      if (files.length > 0) {
-        selectedFile = files[0];
-        await fetchSelectedFile(selectedFile);
-      }
+      files = data; // <-- convert object keys to array
+
     } catch (e: any) {
       error = e.message;
       console.error(e);

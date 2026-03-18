@@ -4,7 +4,7 @@
 
 - page title ✅
 
-- display the song titles properly
+- display the song titles properly ✅
 
 - scores: changes to settings only when user releases the slider, not in "real time"
 
