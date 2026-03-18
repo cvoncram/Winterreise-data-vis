@@ -6,7 +6,7 @@
 
 - display the song titles properly ✅
 
-- scores: changes to settings only when user releases the slider, not in "real time"
+- scores: changes to settings only when user releases the slider, not in "real time" ✅
 
 - fetch performances from repo API
 
