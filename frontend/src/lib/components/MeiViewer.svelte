@@ -4,6 +4,10 @@
     import SliderControl from './SliderControl.svelte';
     
     export let src: string;
+    export let onNoteClick: (data: any) => void;
+    
+    let meiDocument: Document;
+    let meiContainer: HTMLDivElement;
     
     let svg = '';
     let error = '';
@@ -18,7 +22,7 @@
     
     // Slider values
     let spacingPercent = 25;
-    let pageWidth = 800;
+    let pageWidth = 1400;
     let pageHeight = 600;
     
     const baseLayoutOptions = {
@@ -73,6 +77,8 @@
         try {
             if (!src) throw new Error('No MEI data provided');
             
+            meiDocument = new DOMParser().parseFromString(src, "text/xml");
+            
             vrvToolkit.loadData(src);
             
         } catch (e: any) {
@@ -93,7 +99,7 @@
         
         vrvToolkit.redoLayout();
         clampCurrentPage();
-        computeMaxViewportHeight(); // <-- recalc tallest page each time layout changes
+        computeMaxViewportHeight(); 
         renderPage();
     }
     
@@ -116,6 +122,67 @@
             error = e.message;
             console.error(e);
         }
+        
+        
+        meiContainer?.addEventListener("click", (event) => {
+            if (!meiDocument) return;
+            let el = event.target as HTMLElement;
+            
+            while (el && !(el instanceof SVGElement && el.closest("g.note"))) {
+                el = el.parentElement as HTMLElement;
+            }
+            
+            const noteEl = (event.target as Element).closest("g.note") as HTMLElement;
+            
+            if (!noteEl) {
+                console.log("no note element");
+                return;
+            }
+
+            const noteId = noteEl.id;
+            console.log(noteId);
+            
+            const meiNote = meiDocument.evaluate(
+                `//*[@xml:id="${noteId}"]`,
+                meiDocument,
+                (prefix) => (prefix === 'xml' ? 'http://www.w3.org/XML/1998/namespace' : null),
+                XPathResult.FIRST_ORDERED_NODE_TYPE,
+                null
+            ).singleNodeValue as Element | null;
+                        
+            if (!meiNote) {
+                console.log("no mei note");
+                return;
+            }
+            
+            const pitch = meiNote.getAttribute("pname");
+            const octave = meiNote.getAttribute("oct");
+            
+            let parent = meiNote.parentElement;
+            let measure = null;
+            
+            while (parent && parent.tagName.toLowerCase() !== "measure") {
+                parent = parent.parentElement;
+            }
+            
+            if (parent) {
+                measure = parent.getAttribute("n");
+            }
+            
+            const bbox = el.getBoundingClientRect();
+            
+            onNoteClick?.({
+                id: noteId,
+                pitch,
+                octave,
+                measure,
+                x: bbox.left + bbox.width / 2,
+                y: bbox.top
+            });
+            
+        });
+        
+        
     });
     
     $: if (toolkitReady && src) {
@@ -159,7 +226,7 @@
                 <SliderControl
                 label="Maximum page height (pixels)"
                 min={300}
-                max={1200}
+                max={4000}
                 value={pageHeight}
                 onChange={(v) => { pageHeight = v; doLayout(); }}
                 />
@@ -168,10 +235,9 @@
     </div>
     
     <!-- MEI SVG -->
-    <div class="mei-svg">
+    <div class="mei-svg" bind:this={meiContainer}>
         {@html svg}
-    </div>
-    
+    </div> 
     
     <!-- Page controls -->
     <div class="page-controls">
@@ -210,6 +276,35 @@
     
     .mei-svg :global(svg) {
         transform-origin: top center;
+    }
+    
+    .mei-svg :global(g.note) {
+        cursor: pointer;
+    }
+    
+    .mei-svg :global(g.note path),
+    .mei-svg :global(g.note use) {
+        transition: fill 0.15s ease, stroke 0.15s ease;
+    }
+    
+    .mei-svg :global(g.note:hover path),
+    .mei-svg :global(g.note:hover use) {
+        fill: red;
+        stroke: red;
+    }
+    
+    .mei-svg :global(g.add) {
+        color: yellowgreen;
+        stroke: yellowgreen;
+        fill: yellowgreen;
+        
+    }
+    
+    .mei-svg :global(g.add:hover) {
+        color: orange;
+        stroke: orange;
+        fill: orange;
+        
     }
     
     /* Controls wrapper */
