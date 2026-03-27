@@ -9,7 +9,6 @@
   export let selectedFile: string | null = null;
   export let onFileSelect: (file: string) => void;
 
-  // Hardcoded titles for Schubert's Winterreise (24 songs)
   const winterreiseTitles = [
     "Gute Nacht",
     "Die Wetterfahne",
@@ -50,9 +49,9 @@
   }));
 </script>
 
-<div class="flex justify-center w-full mt-4">
-  <div class="flex gap-6 max-w-4xl w-full flex-wrap">
-    <div class="flex-1 bg-base-100 p-4 rounded-lg shadow flex flex-col justify-center items-center overflow-visible">
+<div class="flex w-full mt-4 justify-start">
+  <div class="flex gap-6 max-w-4xl w-full">
+    <div class="bg-base-100 p-4 rounded-lg shadow flex flex-col items-start overflow-visible">
       <label class="label w-full flex flex-col items-center">
         <span class="label-text mb-2 text-lg font-semibold">Select piece</span>
         <select

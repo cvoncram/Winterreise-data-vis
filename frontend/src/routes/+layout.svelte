@@ -14,7 +14,7 @@
 	<title>{title}</title>
 </svelte:head>
 
-<div class="navbar bg-base-100 shadow-sm">
+<div class="navbar bg-base-100 shadow-sm z-50">
     <div class="page-title">
         <a class="btn btn-primary" href="/">MEI Visualisation tool</a>
     </div>
