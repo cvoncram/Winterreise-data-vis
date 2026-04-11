@@ -9,21 +9,9 @@ This project is a web-based MEI viewer that fetches musical scores from a GitHub
 
 ## Backend (FastAPI)
 
-### Requirements
+### Installing the backend
 
-Python >= 3.12
-
-Minimal required packages:
-
-    fastapi==0.128.3
-    uvicorn==0.40.0
-    pydantic==2.12.5
-    pydantic_core==2.41.5
-    starlette==0.52.1
-    requests==2.32.5
-    PyJWT==2.11.0
-    anyio==4.12.1
-    cryptography==46.0.5
+Python >= 3.12 required
 
 Create and activate a virtual environment in /backend:
 
@@ -34,7 +22,7 @@ Install requirements:
 
     pip install -r requirements.txt
 
-### Running the Backend
+### Running the backend
 
 1. Configure your GitHub token and repository info in the backend code.
 2. Activate the virtual environment (if you haven't done so already) and start the FastAPI server:
@@ -47,7 +35,9 @@ Install requirements:
 
 | Endpoint | Description |
 |----------|-------------|
-| `/db/scores-folder` | Returns JSON list of MEI files in GitHub folder. |
+| `/db/scores-folder` | Returns JSON list of MEI files in the scores folder. |
+| `/db/performances` | Returns JSON list of folders inside /performances. |
+| `/db/performance-files` | Returns JSON list of MEI files inside a performance folder. | 
 | `/db/file?path=<file-path>` | Returns JSON containing the MEI file content. |
 
 ---
@@ -87,18 +77,15 @@ This ensures that requests like `/db/scores-folder` and `/db/file` are routed to
 
 ---
 
-## Using the App
-
-1. Open the frontend in your browser.  
-2. The MEI viewer loads a dropdown menu of scores from GitHub.  
-3. Select a file from the dropdown to display it in the viewer.  
-4. Use the sliders and page controls to adjust layout and navigate the score.
-
----
-
 ## Notes
 
-- This setup is **temporary**: the frontend requests GitHub files through the backend. In production, the backend could fetch directly without exposing folder paths.  
-- MEI files are rendered with [Verovio](https://www.verovio.org/).  
-- The frontend uses [Tailwind CSS](https://tailwindcss.com/) and [DaisyUI](https://daisyui.com/) for UI components.
+- This setup is **temporary**: the GitHub repository from which files are retrieved is only a test database.
 
+#### Used frameworks, libraries, and packages
+
+##### Frontend
+- MEI files are rendered with [Verovio](https://www.verovio.org/).  
+- [Tailwind CSS](https://tailwindcss.com/) and [DaisyUI](https://daisyui.com/) for UI components.
+
+##### Backend
+- [FastAPI](https://fastapi.tiangolo.com/) handles http requests and returns responses to the frontend.
