@@ -13,14 +13,12 @@
     let error = '';
     let currentPage = 1;
     let totalPages = 1;
-    let scale = 40;
     let toolkitReady = false;
     let vrvToolkit: any;
     
-    // Height of the tallest page at current layout
     let viewportHeight = 0;
     
-    // Slider values
+    let scale = 40;
     let spacingPercent = 25;
     let pageWidth = 1400;
     let pageHeight = 600;
@@ -33,7 +31,7 @@
         footer: 'none',
         breaks: 'smart',
         breaksSmartSb: 1.0,
-        spacingLinear: 1.0
+        spacingLinear: 1.0,
     };
     
     // Keep current page within bounds
@@ -43,7 +41,7 @@
         if (currentPage < 1) currentPage = 1;
     }
     
-    /**
+    /*
     * Compute the tallest page by actually rendering each SVG
     * and measuring its real pixel height using getBoundingClientRect().
     * This avoids relying on non-existent toolkit methods.
@@ -52,7 +50,7 @@
         const pages = vrvToolkit.getPageCount();
         let maxHeight = 0;
         
-        // Create a hidden container to render SVGs offscreen
+    // Create a hidden container to render SVGs offscreen
         const container = document.createElement('div');
         container.style.position = 'absolute';
         container.style.visibility = 'hidden';
@@ -94,7 +92,8 @@
             scale,
             spacingNonLinear: spacingPercent / 100,
             pageWidth,
-            pageHeight
+            pageHeight,
+            svgAdditionalAttribute: ["add@source", "unclear@reason"]
         });
         
         vrvToolkit.redoLayout();
@@ -105,6 +104,78 @@
     
     function renderPage() {
         svg = vrvToolkit.renderToSVG(currentPage);
+    }
+
+    function handleAddClick(event: Event) {
+        if (!meiDocument) return;
+
+        const addEl = (event.target as Element).closest("g.add") as HTMLElement;
+        
+        if (!addEl) return;
+
+        const addSource = addEl.id;
+
+        const meiAddition = meiDocument.evaluate(
+        `//*[@xml:id="${addSource}"]`,
+        meiDocument,
+        (prefix) => (prefix === 'xml' ? 'http://www.w3.org/XML/1998/namespace' : null),
+        XPathResult.FIRST_ORDERED_NODE_TYPE,
+        null
+        ).singleNodeValue as Element | null;
+
+        if (!meiAddition) return
+
+
+        const medium = meiAddition.getAttribute("");
+        const type = "";
+        const label = "";
+
+
+    }
+    
+    function handleSvgClick(event: Event) {
+        if (!meiDocument) return;
+        
+        const noteEl = (event.target as Element).closest("g.note") as HTMLElement;
+        
+        if (!noteEl) return
+        
+        const noteId = noteEl.id;
+        
+        const meiNote = meiDocument.evaluate(
+        `//*[@xml:id="${noteId}"]`,
+        meiDocument,
+        (prefix) => (prefix === 'xml' ? 'http://www.w3.org/XML/1998/namespace' : null),
+        XPathResult.FIRST_ORDERED_NODE_TYPE,
+        null
+        ).singleNodeValue as Element | null;
+        
+        if (!meiNote) return
+        
+        const pitch = meiNote.getAttribute("pname");
+        const octave = meiNote.getAttribute("oct");
+        
+        let parent = meiNote.parentElement;
+        let measure = null;
+        
+        while (parent && parent.tagName.toLowerCase() !== "measure") {
+            parent = parent.parentElement;
+        }
+        
+        if (parent) {
+            measure = parent.getAttribute("n");
+        }
+        
+        const bbox = noteEl.getBoundingClientRect();
+        
+        onNoteClick?.({
+            id: noteId,
+            pitch,
+            octave,
+            measure,
+            x: bbox.left + bbox.width / 2,
+            y: bbox.top
+        });
     }
     
     onMount(async () => {
@@ -122,66 +193,7 @@
             error = e.message;
             console.error(e);
         }
-        
-        
-        meiContainer?.addEventListener("click", (event) => {
-            if (!meiDocument) return;
-            let el = event.target as HTMLElement;
-            
-            while (el && !(el instanceof SVGElement && el.closest("g.note"))) {
-                el = el.parentElement as HTMLElement;
-            }
-            
-            const noteEl = (event.target as Element).closest("g.note") as HTMLElement;
-            
-            if (!noteEl) {
-                console.log("no note element");
-                return;
-            }
-
-            const noteId = noteEl.id;
-            console.log(noteId);
-            
-            const meiNote = meiDocument.evaluate(
-                `//*[@xml:id="${noteId}"]`,
-                meiDocument,
-                (prefix) => (prefix === 'xml' ? 'http://www.w3.org/XML/1998/namespace' : null),
-                XPathResult.FIRST_ORDERED_NODE_TYPE,
-                null
-            ).singleNodeValue as Element | null;
-                        
-            if (!meiNote) {
-                console.log("no mei note");
-                return;
-            }
-            
-            const pitch = meiNote.getAttribute("pname");
-            const octave = meiNote.getAttribute("oct");
-            
-            let parent = meiNote.parentElement;
-            let measure = null;
-            
-            while (parent && parent.tagName.toLowerCase() !== "measure") {
-                parent = parent.parentElement;
-            }
-            
-            if (parent) {
-                measure = parent.getAttribute("n");
-            }
-            
-            const bbox = el.getBoundingClientRect();
-            
-            onNoteClick?.({
-                id: noteId,
-                pitch,
-                octave,
-                measure,
-                x: bbox.left + bbox.width / 2,
-                y: bbox.top
-            });
-            
-        });
-        
+        meiContainer?.addEventListener("click", handleSvgClick);        
         
     });
     
@@ -189,8 +201,6 @@
         initMEI();
         doLayout();
     }
-    
-    
     
 </script>
 
@@ -271,15 +281,11 @@
         display: flex;
         justify-content: center;
         align-items: flex-start;
-        border: 1px dotted black;
     }
     
     .mei-svg :global(svg) {
         transform-origin: top center;
-    }
-    
-    .mei-svg :global(g.note) {
-        cursor: pointer;
+        padding: 1rem;
     }
     
     .mei-svg :global(g.note path),
@@ -293,32 +299,46 @@
         stroke: red;
     }
     
-    .mei-svg :global(g.add) {
+    .mei-svg :global(g.supplied) {
         color: yellowgreen;
         stroke: yellowgreen;
         fill: yellowgreen;
         
     }
     
-    .mei-svg :global(g.add:hover) {
+    .mei-svg :global(g.supplied:hover) {
+        color: brown;
+        stroke: brown;
+        fill: brown;
+        
+    }
+
+    .mei-svg :global(g[data-source="#dwdfdc9075d0e-7aaa-4a82-bfa0-06eb81584587"]) {
+        color: blueviolet;
+        stroke: blueviolet;
+        fill: blueviolet;
+        cursor: pointer  
+    }
+
+    .mei-svg :global(g[data-source="#dwdfdc9075d0e-7aaa-4a82-bfa0-06eb81584587"]:hover) {
         color: orange;
         stroke: orange;
         fill: orange;
-        
     }
+
     
     /* Controls wrapper */
     .controls-wrapper {
         width: 100%;
         display: flex;
-        justify-content: center; /* center the row of label + sliders */
+        justify-content: center;
     }
     
     /* Row containing label and sliders */
     .controls-header-and-sliders {
         display: flex;
         align-items: center;
-        gap: 1rem; /* space between label and sliders */
+        gap: 1rem;
     }
     
     /* Label on the left, vertical alignment center */
