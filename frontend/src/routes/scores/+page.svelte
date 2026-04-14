@@ -9,6 +9,17 @@
         order?: number;
     };
 
+    type AddData = {
+        id: string;
+        medium: string | null;
+        type: string | null;
+        label: string | null;
+        unclearReason: string | null;
+        x: number;
+        y: number;
+
+    }
+
     type NoteData = {
         id: string;
         pitch: string | null;
@@ -19,7 +30,8 @@
     };
 
     let files = $state<FileItem[]>([]);
-    let popup = $state<NoteData | null>(null);
+    let notePopup = $state<NoteData | null>(null);
+    let addPopup = $state<AddData | null>(null);
     let selectedFile = $state<string | null>(null);
     let meiContent = $state<string | null>(null);
     let error = $state<string>('');
@@ -46,9 +58,13 @@
         selectedFile = file;
         fetchSelectedFile(file);
     }
+
+    function handleAddClick(data: AddData) {
+        addPopup = data;
+    }
     
     function handleNoteClick(data: NoteData) {
-        popup = data;
+        notePopup = data;
     }
     
     onMount(async () => {
@@ -87,17 +103,32 @@
         
         {#if meiContent}
         <div class="card bg-base-100 p-4 shadow-md">
-            <MeiViewer src={meiContent} onNoteClick={handleNoteClick}/>
+            <MeiViewer src={meiContent} onNoteClick={handleNoteClick} onAddClick={handleAddClick}/>
         </div>
         {/if}
         
-        {#if popup}
+        {#if notePopup}
         <div
         class="popup"
-        style="left: {popup.x}px; top: {popup.y}px;"
+        style="left: {notePopup.x}px; top: {notePopup.y}px;"
         >
-        <strong>Note:</strong> {popup.pitch}{popup.octave}<br>
-        <strong>Measure:</strong> {popup.measure}
+        <strong>Note:</strong> {notePopup.pitch}{notePopup.octave}<br>
+        <strong>Measure:</strong> {notePopup.measure}
+        </div>
+        {/if}
+
+        {#if addPopup}
+        <div
+        class="popup"
+        style="left: {addPopup.x}px; top: {addPopup.y}px;"
+        >
+        <strong style="text-decoration: underline;">Addition by Fischer-Dieskau</strong><br>
+        <strong>Medium:</strong> {addPopup.medium}<br>
+        <strong>Label:</strong> {addPopup.label}<br>
+        <strong>Type:</strong> {addPopup.type}<br>
+            {#if addPopup.unclearReason != null}
+        <p>Unclear, {addPopup.unclearReason}</p>
+            {/if}
         </div>
         {/if}
 

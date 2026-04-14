@@ -5,6 +5,7 @@
     
     export let src: string;
     export let onNoteClick: (data: any) => void;
+    export let onAddClick: (data: any) => void;
     
     let meiDocument: Document;
     let meiContainer: HTMLDivElement;
@@ -93,7 +94,7 @@
             spacingNonLinear: spacingPercent / 100,
             pageWidth,
             pageHeight,
-            svgAdditionalAttribute: ["add@source", "unclear@reason"]
+            svgAdditionalAttribute: ["add@source", "unclear@reason", "handShift@medium", "dir@type", "dir@label"]
         });
         
         vrvToolkit.redoLayout();
@@ -126,9 +127,22 @@
         if (!meiAddition) return
 
 
-        const medium = meiAddition.getAttribute("");
-        const type = "";
-        const label = "";
+        const medium = meiAddition.querySelector("handShift")?.getAttribute("medium");
+        const type = addEl.getAttribute("data-type");
+        const label = addEl.getAttribute("data-label");
+        const unclearReason = addEl.querySelector("tspan.unclear")?.getAttribute("data-reason");
+
+        const bbox = addEl.getBoundingClientRect();
+
+        onAddClick?.({
+            id: addEl.id,
+            medium,
+            type,
+            label,
+            unclearReason,
+            x: bbox.left + bbox.width / 2,
+            y: bbox.top
+        });
 
 
     }
@@ -193,7 +207,8 @@
             error = e.message;
             console.error(e);
         }
-        meiContainer?.addEventListener("click", handleSvgClick);        
+        meiContainer?.addEventListener("click", handleSvgClick);  
+        meiContainer?.addEventListener("click", handleAddClick);    
         
     });
     
@@ -281,11 +296,14 @@
         display: flex;
         justify-content: center;
         align-items: flex-start;
+
     }
     
     .mei-svg :global(svg) {
         transform-origin: top center;
         padding: 1rem;
+        background-color: whitesmoke;
+        border-radius: 0.5rem;
     }
     
     .mei-svg :global(g.note path),
