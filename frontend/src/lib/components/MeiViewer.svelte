@@ -51,7 +51,7 @@
         const pages = vrvToolkit.getPageCount();
         let maxHeight = 0;
         
-    // Create a hidden container to render SVGs offscreen
+        // Create a hidden container to render SVGs offscreen
         const container = document.createElement('div');
         container.style.position = 'absolute';
         container.style.visibility = 'hidden';
@@ -94,7 +94,7 @@
             spacingNonLinear: spacingPercent / 100,
             pageWidth,
             pageHeight,
-            svgAdditionalAttribute: ["add@source", "unclear@reason", "handShift@medium", "dir@type", "dir@label"]
+            svgAdditionalAttribute: ["add@source", "unclear@reason", "dir@type", "dir@label"]
         });
         
         vrvToolkit.redoLayout();
@@ -106,34 +106,50 @@
     function renderPage() {
         svg = vrvToolkit.renderToSVG(currentPage);
     }
-
+    
     function handleAddClick(event: Event) {
         if (!meiDocument) return;
-
-        const addEl = (event.target as Element).closest("g.add") as HTMLElement;
         
+        const addEl = (event.target as Element).closest("g.add") as HTMLElement;
         if (!addEl) return;
-
-        const addSource = addEl.id;
-
+        
+        function getPreviousAdd(el: Element): Element | null {
+            let prev = el.previousElementSibling;
+            
+            while (prev) {
+                if (prev.localName === 'add') return prev;
+                prev = prev.previousElementSibling;
+            }
+            
+            return null;
+        }
+        
+        function findHandShift(addEl: Element | null): Element | null {
+            if (!addEl) return null;
+            
+            const handShift = addEl.querySelector('handShift');
+            
+            return handShift || findHandShift(getPreviousAdd(addEl));
+        }
+                
         const meiAddition = meiDocument.evaluate(
-        `//*[@xml:id="${addSource}"]`,
+        `//*[@xml:id="${addEl.id}"]`,
         meiDocument,
         (prefix) => (prefix === 'xml' ? 'http://www.w3.org/XML/1998/namespace' : null),
         XPathResult.FIRST_ORDERED_NODE_TYPE,
         null
         ).singleNodeValue as Element | null;
-
+        
         if (!meiAddition) return
-
-
-        const medium = meiAddition.querySelector("handShift")?.getAttribute("medium");
+                
+        const medium = findHandShift(meiAddition)?.getAttribute("medium");
         const type = addEl.getAttribute("data-type");
         const label = addEl.getAttribute("data-label");
         const unclearReason = addEl.querySelector("tspan.unclear")?.getAttribute("data-reason");
-
+        
+        
         const bbox = addEl.getBoundingClientRect();
-
+        
         onAddClick?.({
             id: addEl.id,
             medium,
@@ -143,8 +159,8 @@
             x: bbox.left + bbox.width / 2,
             y: bbox.top
         });
-
-
+        
+        
     }
     
     function handleSvgClick(event: Event) {
@@ -296,7 +312,7 @@
         display: flex;
         justify-content: center;
         align-items: flex-start;
-
+        
     }
     
     .mei-svg :global(svg) {
@@ -330,20 +346,20 @@
         fill: brown;
         
     }
-
+    
     .mei-svg :global(g[data-source="#dwdfdc9075d0e-7aaa-4a82-bfa0-06eb81584587"]) {
         color: blueviolet;
         stroke: blueviolet;
         fill: blueviolet;
         cursor: pointer  
     }
-
+    
     .mei-svg :global(g[data-source="#dwdfdc9075d0e-7aaa-4a82-bfa0-06eb81584587"]:hover) {
         color: orange;
         stroke: orange;
         fill: orange;
     }
-
+    
     
     /* Controls wrapper */
     .controls-wrapper {
