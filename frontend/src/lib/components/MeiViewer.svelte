@@ -4,8 +4,7 @@
     import SliderControl from './SliderControl.svelte';
     
     export let src: string;
-    export let onNoteClick: (data: any) => void;
-    export let onAddClick: (data: any) => void;
+
     
     let meiDocument: Document;
     let meiContainer: HTMLDivElement;
@@ -16,6 +15,8 @@
     let totalPages = 1;
     let toolkitReady = false;
     let vrvToolkit: any;
+
+    let meiIdMap = new Map<string, Element>();
     
     let viewportHeight = 0;
     
@@ -34,24 +35,35 @@
         breaksSmartSb: 1.0,
         spacingLinear: 1.0,
     };
+
+    function buildMeiIdMap(meiDoc: Document) {
+
+        meiIdMap.clear();
+
+        const all = meiDoc.getElementsByTagName("*");
+
+        let count = 0;
+
+        for (const el of Array.from(all)) {
+            const id = el.getAttribute("xml:id");
+            if (id) {
+                meiIdMap.set(id, el);
+                count++;
+            }
+        }
+
+    }
     
-    // Keep current page within bounds
     function clampCurrentPage() {
         totalPages = vrvToolkit.getPageCount();
         if (currentPage > totalPages) currentPage = totalPages;
         if (currentPage < 1) currentPage = 1;
     }
     
-    /*
-    * Compute the tallest page by actually rendering each SVG
-    * and measuring its real pixel height using getBoundingClientRect().
-    * This avoids relying on non-existent toolkit methods.
-    */
     function computeMaxViewportHeight() {
         const pages = vrvToolkit.getPageCount();
         let maxHeight = 0;
         
-        // Create a hidden container to render SVGs offscreen
         const container = document.createElement('div');
         container.style.position = 'absolute';
         container.style.visibility = 'hidden';
@@ -74,9 +86,11 @@
     
     function initMEI() {
         try {
-            if (!src) throw new Error('No MEI data provided');
+            if (!src) return;
             
             meiDocument = new DOMParser().parseFromString(src, "text/xml");
+
+            buildMeiIdMap(meiDocument);
             
             vrvToolkit.loadData(src);
             
@@ -84,9 +98,9 @@
             error = e.message;
             console.error('MEI load error:', e);
         }
+
     }
-    
-    
+
     function doLayout() {
         vrvToolkit.setOptions({
             ...baseLayoutOptions,
@@ -106,14 +120,56 @@
     function renderPage() {
         svg = vrvToolkit.renderToSVG(currentPage);
     }
-    
-    function handleAddClick(event: Event) {
+
+    // one function for all clicks (notes, annots, adds)
+    let clickContent = "";
+    let clickType = ""
+    let clickElement: HTMLDialogElement;
+    function handleClick(event: Event){
         if (!meiDocument) return;
-        
-        const addEl = (event.target as Element).closest("g.add") as HTMLElement;
-        if (!addEl) return;
-        
-        function getPreviousAdd(el: Element): Element | null {
+
+        const target = event.target as Element;
+
+        const noteEl = target.closest("g.note") as HTMLElement;
+        const annotEl = target.closest("g.annot.score") as HTMLElement;
+        const addEl = target.closest("g.add") as HTMLElement;
+
+        if (noteEl) {
+            clickType = "Note";
+            const meiNote = meiIdMap.get(noteEl.id) || null;
+
+            if (!meiNote) return
+            
+            const pitch = meiNote.getAttribute("pname");
+            const octave = meiNote.getAttribute("oct");
+            
+            let parent = meiNote.parentElement;
+            let measure = null;
+            
+            while (parent && parent.tagName.toLowerCase() !== "measure") {
+                parent = parent.parentElement;
+            }
+            
+            if (parent) {
+                measure = parent.getAttribute("n");
+            }
+            clickContent = "Note: " + pitch + octave + "\nMeasure: " + measure;
+            clickElement?.showModal();
+            
+        } else if (annotEl) {
+            clickType = "Annotation";
+            const meiAnnot = meiIdMap.get(annotEl.id) || null;
+
+            if (!meiAnnot) return;
+
+            clickContent = meiAnnot.textContent || "";
+            clickElement?.showModal();
+            
+        } else if (addEl) {
+            clickType = "Addition by Fischer-Dieskau";
+            
+            
+            function getPreviousAdd(el: Element): Element | null {
             let prev = el.previousElementSibling;
             
             while (prev) {
@@ -122,90 +178,33 @@
             }
             
             return null;
-        }
+            }
         
-        function findHandShift(addEl: Element | null): Element | null {
-            if (!addEl) return null;
-            
-            const handShift = addEl.querySelector('handShift');
-            
-            return handShift || findHandShift(getPreviousAdd(addEl));
-        }
+            function findHandShift(addEl: Element | null): Element | null {
+                if (!addEl) return null;
                 
-        const meiAddition = meiDocument.evaluate(
-        `//*[@xml:id="${addEl.id}"]`,
-        meiDocument,
-        (prefix) => (prefix === 'xml' ? 'http://www.w3.org/XML/1998/namespace' : null),
-        XPathResult.FIRST_ORDERED_NODE_TYPE,
-        null
-        ).singleNodeValue as Element | null;
-        
-        if (!meiAddition) return
+                const handShift = addEl.querySelector('handShift');
                 
-        const medium = findHandShift(meiAddition)?.getAttribute("medium");
-        const type = addEl.getAttribute("data-type");
-        const label = addEl.getAttribute("data-label");
-        const unclearReason = addEl.querySelector("tspan.unclear")?.getAttribute("data-reason");
-        
-        
-        const bbox = addEl.getBoundingClientRect();
-        
-        onAddClick?.({
-            id: addEl.id,
-            medium,
-            type,
-            label,
-            unclearReason,
-            x: bbox.left + bbox.width / 2,
-            y: bbox.top
-        });
-        
-        
-    }
-    
-    function handleSvgClick(event: Event) {
-        if (!meiDocument) return;
-        
-        const noteEl = (event.target as Element).closest("g.note") as HTMLElement;
-        
-        if (!noteEl) return
-        
-        const noteId = noteEl.id;
-        
-        const meiNote = meiDocument.evaluate(
-        `//*[@xml:id="${noteId}"]`,
-        meiDocument,
-        (prefix) => (prefix === 'xml' ? 'http://www.w3.org/XML/1998/namespace' : null),
-        XPathResult.FIRST_ORDERED_NODE_TYPE,
-        null
-        ).singleNodeValue as Element | null;
-        
-        if (!meiNote) return
-        
-        const pitch = meiNote.getAttribute("pname");
-        const octave = meiNote.getAttribute("oct");
-        
-        let parent = meiNote.parentElement;
-        let measure = null;
-        
-        while (parent && parent.tagName.toLowerCase() !== "measure") {
-            parent = parent.parentElement;
+                return handShift || findHandShift(getPreviousAdd(addEl));
+            }
+            
+            const meiAdd = meiIdMap.get(addEl.id) || null;
+            if (!meiAdd) return;
+                    
+            const medium = findHandShift(meiAdd)?.getAttribute("medium");
+            const type = addEl.getAttribute("data-type");
+            const label = addEl.getAttribute("data-label");
+            const unclearReason = addEl.querySelector("tspan.unclear")?.getAttribute("data-reason");
+            const content = meiAdd.textContent?.replace(/\s+/g, " ").trim() || null;            
+            
+            clickContent = `${unclearReason ? "Unclear, " + unclearReason + "\n": ""}` + `${type ? "Type: " + type + "\n" : ""}` + `${label ? "Label: " + label + "\n" : ""}` + "Medium: " + medium + "\nContents: " + content;
+
+            clickElement?.showModal();
+            
+        } else {
+            return;
         }
-        
-        if (parent) {
-            measure = parent.getAttribute("n");
-        }
-        
-        const bbox = noteEl.getBoundingClientRect();
-        
-        onNoteClick?.({
-            id: noteId,
-            pitch,
-            octave,
-            measure,
-            x: bbox.left + bbox.width / 2,
-            y: bbox.top
-        });
+
     }
     
     onMount(async () => {
@@ -223,8 +222,8 @@
             error = e.message;
             console.error(e);
         }
-        meiContainer?.addEventListener("click", handleSvgClick);  
-        meiContainer?.addEventListener("click", handleAddClick);    
+
+        meiContainer?.addEventListener("click", handleClick);
         
     });
     
@@ -275,10 +274,22 @@
         </div>
     </div>
     
-    <!-- MEI SVG -->
     <div class="mei-svg" bind:this={meiContainer}>
         {@html svg}
-    </div> 
+    </div>
+
+    <dialog bind:this={clickElement} class="modal">
+        <div class="modal-box">
+            <form method="dialog">
+                <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
+            </form>
+            <h3 class="text-lg font-bold">{clickType}</h3>
+            <p style="white-space: pre-line;">{clickContent}</p>
+        </div>
+        <form method="dialog" class="modal-backdrop">
+            <button>close</button>
+        </form>
+    </dialog>
     
     <!-- Page controls -->
     <div class="page-controls">
