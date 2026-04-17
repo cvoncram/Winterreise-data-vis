@@ -5,7 +5,6 @@
     
     export let src: string;
 
-    
     let meiDocument: Document;
     let meiContainer: HTMLDivElement;
     
@@ -36,6 +35,9 @@
         spacingLinear: 1.0,
     };
 
+    const capitalize = (s: string) =>
+        s ? s[0].toUpperCase() + s.slice(1) : "";
+    
     function buildMeiIdMap(meiDoc: Document) {
 
         meiIdMap.clear();
@@ -51,7 +53,6 @@
                 count++;
             }
         }
-
     }
     
     function clampCurrentPage() {
@@ -167,37 +168,55 @@
             
         } else if (addEl) {
             clickType = "Addition by Fischer-Dieskau";
-            
-            
-            function getPreviousAdd(el: Element): Element | null {
-            let prev = el.previousElementSibling;
-            
-            while (prev) {
-                if (prev.localName === 'add') return prev;
-                prev = prev.previousElementSibling;
-            }
-            
-            return null;
-            }
-        
-            function findHandShift(addEl: Element | null): Element | null {
-                if (!addEl) return null;
-                
-                const handShift = addEl.querySelector('handShift');
-                
-                return handShift || findHandShift(getPreviousAdd(addEl));
-            }
-            
+                       
             const meiAdd = meiIdMap.get(addEl.id) || null;
             if (!meiAdd) return;
-                    
-            const medium = findHandShift(meiAdd)?.getAttribute("medium");
-            const type = addEl.getAttribute("data-type");
-            const label = addEl.getAttribute("data-label");
-            const unclearReason = addEl.querySelector("tspan.unclear")?.getAttribute("data-reason");
-            const content = meiAdd.textContent?.replace(/\s+/g, " ").trim() || null;            
             
-            clickContent = `${unclearReason ? "Unclear, " + unclearReason + "\n": ""}` + `${type ? "Type: " + type + "\n" : ""}` + `${label ? "Label: " + label + "\n" : ""}` + "Medium: " + medium + "\nContents: " + content;
+            const child = Array.from(meiAdd.children).find(el => el.localName !== "handShift") || null;
+            const firstDirChild = Array.from(meiAdd.children).filter(el => el.localName === "dir")[0];
+
+            let addClass = "";
+            if (child?.localName == "dir") {
+                addClass = "directive for interpretation";
+            } else if (child?.localName == "hairpin") {
+                if (child?.getAttribute("form") == "cres") {
+                    addClass = "crescendo hairpin";
+                } else if (child?.getAttribute("form") == "dim") {
+                    addClass = "diminuendo hairpin";
+                }
+            } else if (child?.localName == "tempo") {
+                addClass = "instruction for tempo";
+            } else if (child?.localName == "dynam") {
+                addClass = "instruction for dynamics";
+            } else if (child?.localName == "trill" || child?.localName == "mordent") {
+                addClass = "Trill/vibrato";
+            } else if (child?.localName == "slur") {
+                addClass = "slur";
+            } else if (child?.localName == "fermata") {
+                addClass = "fermata"
+            }
+            
+            const handShift = meiAdd.querySelector("handShift");
+            let addHandShift = "";
+            if (handShift) {
+                addHandShift = handShift.getAttribute("medium") || "";
+            }
+
+            const annot = meiAdd.querySelector("annot");
+            let annotTag = "";
+            if (annot) {
+                annotTag = annot.textContent;
+            }
+            
+            const addType = addClass;
+            const medium = addHandShift.replace(/-/g, " ");
+            const type = (firstDirChild?.getAttribute("type"))?.replace(/-/g, " ");
+            const label = (firstDirChild?.getAttribute("label"))?.replace(/-/g, " ");
+            const unclearReason = addEl.querySelector("tspan.unclear")?.getAttribute("data-reason");       
+            
+            clickContent = capitalize(addType) + `${unclearReason ? ", unclear (" + unclearReason + ")": ""}` + 
+                "\n" + `${type ? "Type: " + type + "\n" : ""}` + `${label ? "Label: " + label + "\n" : ""}` + 
+                `${handShift ? "Medium: " + medium + "\n" : ""}` + `${annot ? "Additional information: " + annotTag : ""}`;
 
             clickElement?.showModal();
             
@@ -369,6 +388,10 @@
         color: orange;
         stroke: orange;
         fill: orange;
+    }
+
+    .modal-box {
+        line-height: 3vh;
     }
     
     
