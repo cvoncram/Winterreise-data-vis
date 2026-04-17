@@ -124,106 +124,133 @@
 
     // one function for all clicks (notes, annots, adds)
     let clickContent = "";
-    let clickType = ""
+    let clickType = "";
     let clickElement: HTMLDialogElement;
-    function handleClick(event: Event){
+
+    function handleClick(event: Event) {
         if (!meiDocument) return;
 
         const target = event.target as Element;
 
+        // Determine what type of MEI SVG element was clicked
         const noteEl = target.closest("g.note") as HTMLElement;
         const annotEl = target.closest("g.annot.score") as HTMLElement;
         const addEl = target.closest("g.add") as HTMLElement;
 
         if (noteEl) {
             clickType = "Note";
-            const meiNote = meiIdMap.get(noteEl.id) || null;
 
-            if (!meiNote) return
-            
+            const meiNote = meiIdMap.get(noteEl.id) || null;
+            if (!meiNote) return;
+
             const pitch = meiNote.getAttribute("pname");
             const octave = meiNote.getAttribute("oct");
-            
+
+            // Walk up DOM tree to find containing <measure>
             let parent = meiNote.parentElement;
             let measure = null;
-            
+
             while (parent && parent.tagName.toLowerCase() !== "measure") {
                 parent = parent.parentElement;
             }
-            
+
             if (parent) {
                 measure = parent.getAttribute("n");
             }
+
             clickContent = "Note: " + pitch + octave + "\nMeasure: " + measure;
             clickElement?.showModal();
-            
+
         } else if (annotEl) {
             clickType = "Annotation";
-            const meiAnnot = meiIdMap.get(annotEl.id) || null;
 
+            const meiAnnot = meiIdMap.get(annotEl.id) || null;
             if (!meiAnnot) return;
 
+            // Annotation content is taken directly from MEI text node
             clickContent = meiAnnot.textContent || "";
             clickElement?.showModal();
-            
+
         } else if (addEl) {
             clickType = "Addition by Fischer-Dieskau";
-                       
+
             const meiAdd = meiIdMap.get(addEl.id) || null;
             if (!meiAdd) return;
-            
-            const child = Array.from(meiAdd.children).find(el => el.localName !== "handShift") || null;
-            const firstDirChild = Array.from(meiAdd.children).filter(el => el.localName === "dir")[0];
 
+            // First meaningful child (ignoring handShift markup elements)
+            const child = Array.from(meiAdd.children)
+                .find(el => el.localName !== "handShift" && el.localName !== "annot") || null;
+
+            const firstDirChild = Array.from(meiAdd.children)
+                .filter(el => el.localName === "dir")[0];
+
+            // Classify type of musical addition based on first meaningful child
             let addClass = "";
+
             if (child?.localName == "dir") {
                 addClass = "directive for interpretation";
+
             } else if (child?.localName == "hairpin") {
                 if (child?.getAttribute("form") == "cres") {
                     addClass = "crescendo hairpin";
                 } else if (child?.getAttribute("form") == "dim") {
                     addClass = "diminuendo hairpin";
                 }
+
             } else if (child?.localName == "tempo") {
                 addClass = "instruction for tempo";
+
             } else if (child?.localName == "dynam") {
                 addClass = "instruction for dynamics";
+
             } else if (child?.localName == "trill" || child?.localName == "mordent") {
                 addClass = "Trill/vibrato";
+
             } else if (child?.localName == "slur") {
                 addClass = "slur";
+
             } else if (child?.localName == "fermata") {
-                addClass = "fermata"
+                addClass = "fermata";
             }
-            
+
             const handShift = meiAdd.querySelector("handShift");
             let addHandShift = "";
+
             if (handShift) {
                 addHandShift = handShift.getAttribute("medium") || "";
             }
 
             const annot = meiAdd.querySelector("annot");
             let annotTag = "";
+
             if (annot) {
                 annotTag = annot.textContent;
             }
-            
+
             const addType = addClass;
             const medium = addHandShift.replace(/-/g, " ");
             const type = (firstDirChild?.getAttribute("type"))?.replace(/-/g, " ");
             const label = (firstDirChild?.getAttribute("label"))?.replace(/-/g, " ");
-            const unclearReason = addEl.querySelector("tspan.unclear")?.getAttribute("data-reason");       
-            
-            clickContent = capitalize(addType) + `${unclearReason ? ", unclear (" + unclearReason + ")": ""}` + 
-                "\n" + `${type ? "Type: " + type + "\n" : ""}` + `${label ? "Label: " + label + "\n" : ""}` + 
-                `${handShift ? "Medium: " + medium + "\n" : ""}` + `${annot ? "Additional information: " + annotTag : ""}`;
+
+            // Some MEI additions may contain editorial uncertainty annotations
+            const unclearReason = addEl.querySelector("tspan.unclear")?.getAttribute("data-reason");
+
+            // Build modal content from available metadata fields
+            clickContent = [
+                capitalize(addType) + (unclearReason ? `, unclear (${unclearReason})` : ""),
+                type ? `Type: ${type}` : "",
+                label ? `Label: ${label}` : "",
+                handShift ? `Medium: ${medium}` : "",
+                annot ? `Additional information: ${annotTag}` : ""
+            ]
+                .filter(Boolean)
+                .join("\n");
 
             clickElement?.showModal();
-            
+
         } else {
             return;
         }
-
     }
     
     onMount(async () => {
