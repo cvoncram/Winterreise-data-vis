@@ -37,8 +37,9 @@ Install requirements:
 |----------|-------------|
 | `/db/scores-folder` | Returns JSON list of MEI files in the scores folder. |
 | `/db/performances` | Returns JSON list of folders inside /performances. |
-| `/db/performance-files` | Returns JSON list of MEI files inside a performance folder. | 
+| `/db/performance-files?performance=<performance-folder>` | Returns JSON list of MEI files inside a performance folder. | 
 | `/db/file?path=<file-path>` | Returns JSON containing the MEI file content. |
+| `/db/parsed-file?path=<file-path>` | Returns parsed MEI performance data as JSON objects (measure, tempo, dynamics, timbre) |
 
 ---
 
