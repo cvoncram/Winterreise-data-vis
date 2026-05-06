@@ -1,8 +1,10 @@
-from typing import List, Optional, Dict
+from typing import List, Optional, Dict, Tuple
 import xml.etree.ElementTree as ET
 
 
-MEI_NS = {"mei": "http://www.music-encoding.org/ns/mei"}
+MEI_NS = {"mei": "http://www.music-encoding.org/ns/mei",
+          "xml": "http://www.w3.org/XML/1998/namespace"
+          }
 
 
 def parse_mei_to_rows(xml: str) -> List[Dict[str, Optional[float]]]:
@@ -57,3 +59,28 @@ def parse_mei_to_rows(xml: str) -> List[Dict[str, Optional[float]]]:
             })
 
     return rows
+
+def parse_mei_metadata (xml: str) -> dict[str, int]:
+
+    metadata = []
+
+    root = ET.fromstring(xml)
+
+    metadata_element = root.find('.//mei:application[@xml:id="sv_to_mei"]', MEI_NS)
+
+    sampleRateElement = metadata_element.find('.//mei:annot[@type="sampleRate"]', MEI_NS)
+    sampleRate = sampleRateElement.get("value")
+
+    mfDBCalibrationElement = metadata_element.find('.//mei:annot[@type="mf_dB_calibration"]', MEI_NS)
+    mfDBCalibration = mfDBCalibrationElement.get("value")
+    
+    dynamicStepElement = metadata_element.find('.//mei:annot[@type="dB_per_dynamic_level"]', MEI_NS)
+    dynamicStep = dynamicStepElement.get("value")
+
+    metadata = {
+        "sampleRate": sampleRate,
+        "mfValue": mfDBCalibration,
+        "dynamicStep": dynamicStep
+    }
+
+    return metadata

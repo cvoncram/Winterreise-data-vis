@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 from github_auth import get_installation_token
-from services.meiParser import parse_mei_to_rows
+from services.meiParser import parse_mei_to_rows, parse_mei_metadata
 import requests
 import base64
 from config import OWNER, REPO, BRANCH
@@ -33,5 +33,6 @@ def parse_mei(path: str):
     xml = base64.b64decode(r.json()["content"]).decode()
 
     rows = parse_mei_to_rows(xml)
+    metadata = parse_mei_metadata(xml)
 
-    return {"data": rows}
+    return [{"metadata": metadata}, {"data": rows}]
