@@ -57,7 +57,7 @@
         <select
           class="select select-bordered w-full"
           bind:value={selectedFile}
-          on:change={(e) => onFileSelect((e.target as HTMLSelectElement).value)}
+          on:change={(e) => onFileSelect(e.currentTarget.value)}
           disabled={filesWithTitles.length === 0}
         >
           {#each filesWithTitles as file}

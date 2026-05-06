@@ -24,7 +24,7 @@
         <select
           class="select select-bordered w-full"
           bind:value={selectedRecording}
-          on:change={(e) => onSelect((e.target as HTMLSelectElement).value)}
+          on:change={(e) => onSelect(e.currentTarget.value)}
           disabled={recordings.length === 0}
         >
           {#each recordings as rec}
