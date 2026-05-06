@@ -5,6 +5,11 @@
     dynamics: string | null;
     timbre: number | null;
   };
+  export type PerformanceMetadata = {
+    sampleRate: number;
+    mfValue: number;
+    dynamicStep: number;
+  }
 </script>
 
 <script lang="ts">

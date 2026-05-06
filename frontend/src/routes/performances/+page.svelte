@@ -3,8 +3,8 @@
     import PerformanceSelector from '$lib/components/PerformanceSelector.svelte';
     import ScoreSelector from '$lib/components/ScoreSelector.svelte';
     import MeiTable from '$lib/components/MeiTable.svelte';
-    import MeiRibbon from '$lib/components/MeiRibbon.svelte';
-    import type { PerformanceRow } from '$lib/components/MeiTable.svelte';
+    import MeiCircularRibbon from '$lib/components/MeiCircularRibbon.svelte';
+    import type { PerformanceRow, PerformanceMetadata } from '$lib/components/MeiTable.svelte';
 
     type FileItem = { path: string; label: string; order?: number };
 
@@ -14,9 +14,11 @@
     let pieces: FileItem[] = [];
     let selectedPiece: string | null = null;
 
+    let metadata: PerformanceMetadata | null = null;
+
     let tableRows: PerformanceRow[] = [];
     let error = '';
-    let active = "table";
+    let active = "visualization";
 
     onMount(async () => {
         try {
@@ -56,7 +58,8 @@
 
             const data = await res.json();
 
-            tableRows = data.data;
+            metadata = data[0]?.metadata ?? null;
+            tableRows = data[1]?.data ?? [];
 
         } catch (e: any) {
             error = e.message;
@@ -65,57 +68,64 @@
     }
 </script>
 
-<div class="flex">
-    <div>
-        <div class="fixed top-0 left-0 h-full w-64 bg-base-200 p-4 flex flex-col justify-center items-center gap-4 z-10">
-            {#if error}
+<div class="flex h-screen overflow-hidden">
+
+    <aside class="w-64 shrink-0 bg-base-200 p-4 flex flex-col gap-4 justify-center">
+        {#if error}
             <p class="text-error">{error}</p>
-            {/if}
-            <div class="card bg-base-200 p-4 shadow-md justify-start">        
-                <PerformanceSelector
+        {/if}
+
+        <div class="card bg-base-200 p-4 shadow-md">
+            <PerformanceSelector
                 {recordings}
                 selectedRecording={selectedRecording}
                 onSelect={handleRecordingSelect}
-                />
-            </div>       
-            
-            {#if selectedRecording && pieces.length > 0}
-            <div class="card bg-base-200 p-4 shadow-md justify-start">        
+            />
+        </div>
+
+        {#if selectedRecording && pieces.length > 0}
+            <div class="card bg-base-200 p-4 shadow-md">
                 <ScoreSelector
-                files={pieces}
-                selectedFile={selectedPiece}
-                onFileSelect={handlePieceSelect}
+                    files={pieces}
+                    selectedFile={selectedPiece}
+                    onFileSelect={handlePieceSelect}
                 />
             </div>
+        {/if}
+    </aside>
+
+    <main class="flex-1 flex flex-col overflow-hidden">
+
+        <div class="flex-1 relative p-6 overflow-auto mb-[3rem]">
+            {#if active === "table"}
+                <MeiTable rows={tableRows} />
+            {:else if active === "visualization"}
+                <MeiCircularRibbon
+                    rows={tableRows}
+                    metadata={metadata}
+                />
             {/if}
         </div>
-    </div>
 
-    
-    <div class="p-6">
-        {#if active === "table"}
-        <div class="ml-64 p-4">
-            <MeiTable rows={tableRows} />
+        <div
+            class="dock dock-xs shrink-0"
+            style="border-top: 1px solid #e2e8f0; background-color: rgb(216 222 233);"
+        >
+            <button
+                class:dock-active={active === "visualization"}
+                on:click={() => (active = "visualization")}
+            >
+                Visualization
+            </button>
+
+            <button
+                class:dock-active={active === "table"}
+                on:click={() => (active = "table")}
+            >
+                Table
+            </button>
         </div>
 
-        {:else if active === "visualization"}
-        <div class="ml-64 p-4">
-        <MeiRibbon rows={tableRows} />
-        </div>
-        {/if}
-    </div>
-
-    <!-- Dock (bottom navigation) -->
-    <div class="dock dock-xs" style="border-top: 1px solid #e2e8f0; background-color: rgb(216 222 233);">
-    <button
-        class:dock-active={active === "table"}
-        on:click={() => (active = "table")}
-    >Table</button>
-
-    <button
-        class:dock-active={active === "visualization"}
-        on:click={() => (active = "visualization")}
-    >Visualization</button>
-    </div>
+    </main>
 
 </div>
