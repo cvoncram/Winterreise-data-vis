@@ -60,27 +60,34 @@ def parse_mei_to_rows(xml: str) -> List[Dict[str, Optional[float]]]:
 
     return rows
 
-def parse_mei_metadata (xml: str) -> dict[str, int]:
-
-    metadata = []
-
+def parse_mei_metadata(xml: str) -> dict[str, float | int]:
     root = ET.fromstring(xml)
 
-    metadata_element = root.find('.//mei:application[@xml:id="sv_to_mei"]', MEI_NS)
+    metadata_element = root.find(
+        './/mei:application[@xml:id="sv_to_mei"]',
+        MEI_NS
+    )
 
-    sampleRateElement = metadata_element.find('.//mei:annot[@type="sampleRate"]', MEI_NS)
-    sampleRate = sampleRateElement.get("value")
+    sampleRateElement = metadata_element.find(
+        './/mei:annot[@type="sampleRate"]',
+        MEI_NS
+    )
+    sampleRate = float(sampleRateElement.get("value"))
 
-    mfDBCalibrationElement = metadata_element.find('.//mei:annot[@type="mf_dB_calibration"]', MEI_NS)
-    mfDBCalibration = mfDBCalibrationElement.get("value")
-    
-    dynamicStepElement = metadata_element.find('.//mei:annot[@type="dB_per_dynamic_level"]', MEI_NS)
-    dynamicStep = dynamicStepElement.get("value")
+    mfDBCalibrationElement = metadata_element.find(
+        './/mei:annot[@type="mf_dB_calibration"]',
+        MEI_NS
+    )
+    mfDBCalibration = float(mfDBCalibrationElement.get("value"))
 
-    metadata = {
+    dynamicStepElement = metadata_element.find(
+        './/mei:annot[@type="dB_per_dynamic_level"]',
+        MEI_NS
+    )
+    dynamicStep = float(dynamicStepElement.get("value"))
+
+    return {
         "sampleRate": sampleRate,
         "mfValue": mfDBCalibration,
         "dynamicStep": dynamicStep
     }
-
-    return metadata
