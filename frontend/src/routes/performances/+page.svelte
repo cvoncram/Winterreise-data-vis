@@ -96,7 +96,7 @@
 
     <main class="flex-1 flex flex-col overflow-hidden">
 
-        <div class="flex-1 relative p-6 overflow-auto mb-[3rem]">
+        <div class="flex-1 relative p-6 overflow-auto mb-12">
             {#if active === "table"}
                 <MeiTable rows={tableRows} />
             {:else if active === "visualization"}

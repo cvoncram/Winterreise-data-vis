@@ -8,10 +8,28 @@
 
 - zoom function
 
+- color schemes ✅
+
 - select part of a performance in viz + compare to different perf
 
 
+## Questions
 
+- what would a musicologist need from such an application?
+
+    - explain the function, how to read the graphs
+
+    - compare (parts of) different performances to each other and align with the scores?
+
+    - look for certain trends within the performance corpus - if yes, what might be some of the hypotheses we would like to test?
+
+    - database query: look how fast are measures played if they are above a certain dynamics threshold
+
+    - calculate an average or generate a simple line graph for each of the parameters for a piece
+
+    - compare deltas
+
+    - correlation networking, e.g. which performances could be clustered together according to certain parameters 
 
 
 ## older

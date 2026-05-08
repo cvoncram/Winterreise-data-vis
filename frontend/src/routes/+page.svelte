@@ -11,8 +11,8 @@
                 performance differences across many recordings of the same piece.</p>
             <br>
             <h4 class="text-2xl mb-2">Credits</h4>
-            <p>Frontend framework: SvelteKit<br>UI components: TailwindCSS and DaisyUI<br>
-                Backend framework: FastAPI<br>MEI engraving engine: Verovio</p>
+            <p>Frontend framework: SvelteKit<br>UI components and animations: TailwindCSS, DaisyUI, and GSAP<br>
+                Visualizations: D3.JS<br>Backend framework: FastAPI<br>MEI engraving engine: Verovio</p>
             <br>
             <h4 class="text-2xl mb-2">About this application</h4>
             <p>This application was created by Clemens von Cramon as part of the M.A. 
