@@ -8,17 +8,17 @@
 
     type FileItem = { path: string; label: string; order?: number };
 
-    let recordings: FileItem[] = [];
-    let selectedRecording: string | null = null;
+    let recordings = $state<FileItem[]>([]);
+    let selectedRecording = $state<string | null>();
 
-    let pieces: FileItem[] = [];
-    let selectedPiece: string | null = null;
+    let pieces = $state<FileItem[]>([]);
+    let selectedPiece = $state<string | null>();
 
-    let metadata: PerformanceMetadata | null = null;
+    let metadata = $state<PerformanceMetadata | null>(null);
 
-    let tableRows: PerformanceRow[] = [];
-    let error = '';
-    let active = "visualization";
+    let tableRows = $state<PerformanceRow[]>([]);
+    let error = $state('');
+    let active = $state("visualization");
 
     onMount(async () => {
         try {
@@ -91,39 +91,51 @@
                     onFileSelect={handlePieceSelect}
                 />
             </div>
+            {/if}
+        {#if selectedPiece}
+            <div class="flex w-full mt-4 justify-start">
+                <div class="flex gap-6 w-full">
+                    <div class="bg-base-100 w-full p-4 rounded-lg shadow flex flex-col items-start overflow-visible">
+                        <button 
+                            class={`btn btn-block ${
+                                active === "visualization"
+                                    ? "btn-primary"
+                                    : "bg-base-300"
+                            }`}
+                            onclick={() => (active = "visualization")}
+                        >
+                            Show visualization
+                        </button>
+                    
+                        <button
+                            class={`btn btn-block ${
+                                active === "table"
+                                    ? "btn-primary"
+                                    : "bg-base-300"
+                            }`}
+                            onclick={() => (active = "table")}
+                        >
+                            Show data table
+                        </button>
+                    </div>
+                </div>
+            </div>
         {/if}
+
+
     </aside>
 
     <main class="flex-1 flex flex-col overflow-hidden">
 
         <div class="flex-1 relative p-6 overflow-auto mb-12">
-            {#if active === "table"}
-                <MeiTable rows={tableRows} />
-            {:else if active === "visualization"}
+            {#if active === "visualization"}
                 <MeiCircularRibbon
                     rows={tableRows}
                     metadata={metadata}
                 />
+            {:else if active === "table"}
+                <MeiTable rows={tableRows} />
             {/if}
-        </div>
-
-        <div
-            class="dock dock-xs shrink-0"
-            style="border-top: 1px solid #e2e8f0; background-color: rgb(216 222 233);"
-        >
-            <button
-                class:dock-active={active === "visualization"}
-                on:click={() => (active = "visualization")}
-            >
-                Visualization
-            </button>
-
-            <button
-                class:dock-active={active === "table"}
-                on:click={() => (active = "table")}
-            >
-                Table
-            </button>
         </div>
 
     </main>

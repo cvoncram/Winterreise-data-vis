@@ -6,16 +6,23 @@
     let svg: SVGSVGElement;
     let container: HTMLDivElement;
 
-    let width = 0;
-    let height = 0;
+    let width = $state(0);
+    let height = $state(0);
 
-    export let rows: PerformanceRow[] = [];
-    export let metadata: PerformanceMetadata | null = null;
-    let selectedRow: PerformanceRow | null = null;
+    let { rows, metadata }: {
+        rows: PerformanceRow[],
+        metadata: PerformanceMetadata | null
+    } = $props();
+    let selectedRow = $state<PerformanceRow | null>(null);
+
+    let isDraggingSelection = $state(false);
+    let selectedMeasures = $state<PerformanceRow[]>([]);
 
     let resizeObserver: ResizeObserver;
 
-    let brushEnabled = false;
+    let brushEnabled = $state(false);
+
+    let dragStartIndex: number | null = null;
 
     onMount(() => {
         resizeObserver = new ResizeObserver(() => {
@@ -24,7 +31,11 @@
 
         resizeObserver.observe(container);
 
-        updateSize();       
+        updateSize();
+        
+        window.addEventListener("mouseup", () => {
+            isDraggingSelection = false;
+        });
 
         return () => resizeObserver.disconnect();
     });
@@ -34,7 +45,7 @@
         height = container.clientHeight;
     }
 
-    let selectedColorDropdown = "viridisScheme";    
+    let selectedColorDropdown = $state("viridisScheme");    
 
     // calculate colors for timbre/spectral centroid    
     function applyColorScheme (color: number) {
@@ -54,30 +65,8 @@
             return "";
         }
     }
-
-
-    function brushed(event: any) {
-        const selection = event.selection;
-        if (!selection) return;
-
-        const [[x0, y0], [x1, y1]] = selection;
-
-        d3.select(svg)
-            .selectAll<SVGPathElement, any>("path.arc")
-            .classed("selected", function() {
-                const bbox = this.getBBox();
-
-                return (
-                    bbox.x < x1 &&
-                    bbox.x + bbox.width > x0 &&
-                    bbox.y < y1 &&
-                    bbox.y + bbox.height > y0
-                );
-            });
-    }
-
-    
-    let colors: string[] = [""];
+  
+    let colors = $state<string[]>([""]);
     
     function fillColorArray (minTimbre: number, diff: number){
         for (let i=0; i < rows.length; i++) {
@@ -98,13 +87,22 @@
         .selectAll<SVGPathElement, any>("path.arc")
         .attr("fill", (d, i) => colors[i]);
     }
-    
-    
-    
-    $: if (rows.length && width > 0 && height > 0) {
-        tick().then(render);
-        
+
+    function clearSelection() {
+        selectedMeasures = [];
+        dragStartIndex = null;
+        isDraggingSelection = false;
+
+        d3.selectAll("path.arc")
+            .classed("selected", false);
     }
+    
+    
+    
+    $effect(() => {
+        if (rows.length && width > 0 && height > 0) {
+        tick().then(render)}
+    });
 
     let minTimbre: number | null;
     let maxTimbre: number;
@@ -125,7 +123,7 @@
         
         svgSel.selectAll("*").remove();
         
-        const radius = Math.min(width, height)/ 1.1;
+        const radius = Math.min(width, height)/ 0.95;
         
         // calculate thickness of each arch from dynamics values
         let dynamics: number[] = [];
@@ -154,8 +152,8 @@
         }
         
         const arcGen = d3.arc<any>()
-            .innerRadius(radius * 0.6)
-            .outerRadius(d => radius * (0.6 + d.thickness))
+            .innerRadius(radius * 0.5)
+            .outerRadius(d => radius * (0.5 + d.thickness))
             .padAngle(0.001)
             .cornerRadius(5);
             
@@ -168,19 +166,13 @@
         const arcs = pie(rows).map((d, i) => ({
             ...d,
             thickness: dynamics[i] ?? 0,
+            index: i
         }));
                 
         const g = svgSel.append("g")
-            .attr("transform", `translate(${width / 2}, ${height/1})`);
-                
-        if (brushEnabled) {
-            const brush = d3.brush()
-                .on("brush end", brushed);
+            .attr("transform", `translate(${width / 2}, ${height/1.05})`);
+                        
 
-            svgSel.append("g")
-                .attr("class", "brush")
-                .call(d3.brush().on("brush", brushed));
-        }
 
         fillColorArray(minTimbre, diff);
 
@@ -193,6 +185,29 @@
             .attr("fill", (d, i) => colors[i])
             .on("click", (event, d) => {
                 selectedRow = d.data;
+            })
+            .on("pointerdown", (event, d) => {
+                if (brushEnabled) {
+                    isDraggingSelection = true;
+                    selectedMeasures = [];
+                    dragStartIndex = d.index;
+                }
+            }).on("pointermove", (event, d) => {
+                if (!isDraggingSelection || dragStartIndex == null) return;
+
+                const start = Math.min(dragStartIndex, d.index);
+                const end = Math.max(dragStartIndex, d.index);
+
+                const selected = rows.slice(start, end + 1);
+
+                selectedMeasures = selected;
+
+                d3.selectAll("path.arc")
+                    .classed("selected", (_, i) => i >= start && i <= end);
+            })
+            .on("pointerup", () => {
+                isDraggingSelection = false;
+                dragStartIndex = null;
             });
 
     }
@@ -200,12 +215,29 @@
 </script>
 
 
-<div bind:this={container} class="relative w-full h-full">
+<div bind:this={container} class="relative w-full h-[80vh]">
 
-    <svg bind:this={svg} class="w-full h-full"></svg>
+    <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+    <svg
+        bind:this={svg}
+        class="w-full h-full"
+        role="application"
+        aria-label="Interactive performance visualization"
+        onkeydown={() => {}}
+        onpointerdown={() => {
+            isDraggingSelection = true;
+            selectedMeasures = [];
+        }}
+        onpointerup={() => {
+            isDraggingSelection = false;
+        }}
+        onpointerleave={() => {
+            isDraggingSelection = false;
+        }}
+    ></svg>
 
-    {#if selectedRow}
-    <div class="absolute top-4 right-4 bg-base-200 p-4 rounded-xl shadow-xl">
+    {#if selectedRow && !brushEnabled}
+    <div class="absolute bottom-10 left-1/2 -translate-x-1/2 bg-base-200 p-4 rounded-xl shadow-xl">
         <div>
             <h3 class="card-title">Measure {selectedRow.measure}</h3>
             <p> Tempo (bpm): {selectedRow.tempo}<br>
@@ -215,13 +247,35 @@
         </div>
     </div>
     {/if}
-    <div class="absolute top-4 left-4 bg-base-200 p-4 rounded-xl shadow-xl">
+    {#if brushEnabled && selectedMeasures && selectedMeasures.length > 0}
+    <div class="absolute bottom-10 left-1/2 -translate-x-1/2 bg-base-200 p-4 rounded-xl shadow-xl">
+        <h3 class="card-title">Selected range</h3>
+
+        <p>
+            Marked beats:
+            {selectedMeasures[0].measure}
+            –
+            {selectedMeasures[selectedMeasures.length - 1].measure}
+        </p>
+
+        <p>
+            Total selected beats:
+            {selectedMeasures.length}
+        </p>
+
+
+        <button class="btn btn-block btn-warning mt-3" onclick={clearSelection}>
+            Exit selection
+        </button>
+    </div>
+    {/if}
+    <div class="absolute top-4 left-4 bg-base-200 p-4 rounded-xl shadow-xl max-w-[10vw]">
         <label>
             <span class="card-title">Choose color scheme:</span>
             <select 
                 class="select select-bordered w-full" 
                 bind:value={selectedColorDropdown} 
-                on:change={() => updateColors()}
+                onchange={() => updateColors()}
             >
                 <option value="viridisScheme">Viridis</option>
                 <option value="infernoScheme">Inferno</option>
@@ -231,29 +285,36 @@
                 <option value="redsScheme">Red shades</option>         
             </select>
         </label>
-        <button class="btn btn-sm btn-secondary btn-block mt-4" on:click={() => {
-            brushEnabled = !brushEnabled; 
+        <button class={`btn btn-sm btn-block mt-4 ${brushEnabled? "bg-base-300" : "btn-primary"}`} onclick={() => {
+            brushEnabled = false;
+            clearSelection();
             render();  
-        }}>{brushEnabled ? "Disable selection" : "Enable selection"}
-        </button>
+        }}>Select single beat</button>
+        <button class={`btn btn-sm btn-block mt-4 ${brushEnabled? "btn-primary" : "bg-base-300"}`} onclick={() => {
+            brushEnabled = true;
+            clearSelection();
+            render();  
+        }}>Select multiple beats</button>
 
     </div>
-    <div class="absolute bottom-2 bg-base-200 max-w-[25vw] p-4 left-1/2 -translate-x-1/2 rounded-xl shadow-xl">
-        <h3 class="card-title">About this visualization</h3>
-        <p>This graph visualizes three different parameters of performance data. Each slab represents one marked beat.</p>
-        <ol class="list-decimal pl-6">
-            <li>The <u>tempo</u> of the beat determines the size of the slab's <b>angle</b>, i.e. a "thicker" slab 
-                denotes a longer/slower performed beat.</li>
-            <li>The <u>dynamics</u> value of the measure decides how <b>long</b> a slab is; a longer slab 
-                is louder than a shorter slab.</li>
-            <li>The <b>color</b> of a slab represents the detected <u>spectral centroid</u> of the beat. 
-                A lighter color denotes a higher value, i.e. a "brighter" perceived sound.</li>
-        </ol>
-        <p>If you find a different color scheme than the default <i>Viridis</i> scheme more helpful, 
-            you may choose among several options in the upper left corner. Clicking on a slab shows information 
-            about the according beat in the upper right corner.</p>
-    </div>
+    
+</div>
 
+<div class="relative bg-base-200 max-w-[55vw] p-4 left-1/2 -translate-x-1/2 rounded-xl shadow-xl">
+    <h3 class="card-title">How to read this visualization</h3>
+    <p>This graph visualizes three different parameters of performance data. Each slab represents one marked beat.</p>
+    <ol class="list-decimal pl-6">
+        <li>The <u>tempo</u> of the beat determines the size of the slab's <b>angle</b>, i.e. a "thicker" slab 
+            denotes a longer/slower performed beat.</li>
+        <li>The <u>dynamics</u> value of the beat decides the <b>length</b> of a slab; a longer slab 
+            is louder than a shorter slab.</li>
+        <li>The <b>color</b> of a slab represents the detected <u>spectral centroid</u> of the beat. 
+            A lighter color denotes a higher value, i.e. a "brighter" perceived sound.</li>
+    </ol>
+    <h3 class="card-title mt-2">Additional options</h3>
+    <p>If you find a different color scheme than the default <i>Viridis</i> scheme more helpful, 
+        you may choose among several options in the upper left corner. Clicking on a slab shows information 
+        about the according beat in the upper right corner.</p>
 </div>
 
 <style>
@@ -261,8 +322,15 @@
     filter: brightness(1.4);
     }
 
+    :global(path.arc) {
+        opacity: 1;
+        transition:
+            opacity 0.15s ease,
+            filter 0.15s ease;
+    }
+
     :global(path.arc.selected) {
-    stroke: white;
-    stroke-width: 2;
-    } 
+        opacity: 0.2;
+    }
+
 </style>
