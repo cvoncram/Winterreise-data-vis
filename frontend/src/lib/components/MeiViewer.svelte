@@ -3,26 +3,26 @@
     import PageControls from './PageControls.svelte';
     import SliderControl from './SliderControl.svelte';
     
-    export let src: string;
+    let {src}: {src: string} = $props();
 
     let meiDocument: Document;
     let meiContainer: HTMLDivElement;
     
-    let svg = '';
-    let error = '';
-    let currentPage = 1;
-    let totalPages = 1;
-    let toolkitReady = false;
+    let svg = $state('');
+    let error = $state('');
+    let currentPage = $state(1);
+    let totalPages = $state(1);
+    let toolkitReady = $state(false);
     let vrvToolkit: any;
 
     let meiIdMap = new Map<string, Element>();
     
-    let viewportHeight = 0;
+    let viewportHeight = $state(0);
     
-    let scale = 40;
-    let spacingPercent = 25;
-    let pageWidth = 1400;
-    let pageHeight = 600;
+    let scale = $state(40);
+    let spacingPercent = $state(25);
+    let pageWidth = $state(1400);
+    let pageHeight = $state(600);
     
     const baseLayoutOptions = {
         spacingSystem: 0,
@@ -123,8 +123,8 @@
     }
 
     // one function for all clicks (notes, annots, adds)
-    let clickContent = "";
-    let clickType = "";
+    let clickContent = $state("");
+    let clickType = $state("");
     let clickElement: HTMLDialogElement;
 
     function handleClick(event: Event) {
@@ -273,10 +273,12 @@
         
     });
     
-    $: if (toolkitReady && src) {
-        initMEI();
-        doLayout();
-    }
+    $effect (() => {
+        if (toolkitReady && src) {
+            initMEI();
+            doLayout();
+        }
+    });
     
 </script>
 

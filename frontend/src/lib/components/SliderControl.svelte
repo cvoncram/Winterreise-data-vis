@@ -1,13 +1,10 @@
 <script lang="ts">
-	export let label: string;
-	export let min = 0;
-	export let max = 100;
-	export let value = 50;
-	export let onChange: (value: number) => void;
+
+	let {label, min = 0, max = 100, value = 50, onChange}: {label: string; min: number; max: number; value: number; onChange: (value: number) => void } = $props();
 
 	const sliderId = 'slider-' + Math.random().toString(36).substring(2, 9);
 
-	let localValue = value;
+	let localValue = $derived(value);
 
 	function handleInput(event: Event) {
 		const target = event.target as HTMLInputElement;
@@ -30,8 +27,8 @@
 		min={min}
 		max={max}
 		value={value}
-		on:input={handleInput}
-		on:change={handleChange}
+		oninput={handleInput}
+		onchange={handleChange}
 	/>
 </div>
 

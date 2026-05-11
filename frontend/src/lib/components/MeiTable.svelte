@@ -1,4 +1,4 @@
-<script lang="ts" context="module">
+<script lang="ts" module>
   export type PerformanceRow = {
     measure: string;
     tempo: number | null;
@@ -13,7 +13,7 @@
 </script>
 
 <script lang="ts">
-  export let rows: PerformanceRow[] = [];
+  let {rows = []}: {rows: PerformanceRow[]} = $props();
 </script>
 
 {#if rows.length > 0}

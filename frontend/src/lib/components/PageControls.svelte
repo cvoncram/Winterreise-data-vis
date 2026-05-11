@@ -1,14 +1,11 @@
 <script lang="ts">
-    export let currentPage: number;
-    export let totalPages: number;
-    export let onPrev: () => void;
-    export let onNext: () => void;
+    let { currentPage, totalPages, onPrev, onNext}: {currentPage: number; totalPages: number; onPrev: () => void; onNext: () => void} = $props(); 
 </script>
 
 <div class="page-controls">
-    <button on:click={onPrev} disabled={currentPage === 1}>Prev Page</button>
+    <button onclick={onPrev} disabled={currentPage === 1}>Prev Page</button>
     <span>Page {currentPage} / {totalPages}</span>
-    <button on:click={onNext} disabled={currentPage === totalPages}>Next Page</button>
+    <button onclick={onNext} disabled={currentPage === totalPages}>Next Page</button>
 </div>
 
 <style>
