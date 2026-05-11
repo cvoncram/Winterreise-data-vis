@@ -9,10 +9,10 @@
     type FileItem = { path: string; label: string; order?: number };
 
     let recordings = $state<FileItem[]>([]);
-    let selectedRecording = $state<string | null>();
+    let selectedRecording = $state<string | null>("");
 
     let pieces = $state<FileItem[]>([]);
-    let selectedPiece = $state<string | null>();
+    let selectedPiece = $state<string | null>("");
 
     let metadata = $state<PerformanceMetadata | null>(null);
 
@@ -121,12 +121,9 @@
                 </div>
             </div>
         {/if}
-
-
     </aside>
 
     <main class="flex-1 flex flex-col overflow-hidden">
-
         <div class="flex-1 relative p-6 overflow-auto mb-12">
             {#if active === "visualization"}
                 <MeiCircularRibbon
@@ -137,7 +134,5 @@
                 <MeiTable rows={tableRows} />
             {/if}
         </div>
-
     </main>
-
 </div>
