@@ -20,6 +20,11 @@
     let error = $state('');
     let active = $state("visualization");
 
+    let brushEnabled = $state(false);
+    let selectedColorDropdown: string = $state("viridisScheme");
+    let displayedRows = $state<PerformanceRow[]>([]);
+    let chart: any = $state();
+
     onMount(async () => {
         try {
             const res = await fetch('/db/performances');
@@ -70,12 +75,12 @@
 
 <div class="flex h-screen overflow-hidden">
 
-    <aside class="w-64 shrink-0 bg-base-200 p-4 flex flex-col gap-4 justify-center">
+    <aside class="w-64 shrink-0 bg-base-200 p-4 flex flex-col gap-4">
         {#if error}
             <p class="text-error">{error}</p>
         {/if}
 
-        <div class="card bg-base-200 p-4 shadow-md">
+        <div class="card w-full">
             <PerformanceSelector
                 {recordings}
                 selectedRecording={selectedRecording}
@@ -84,16 +89,16 @@
         </div>
 
         {#if selectedRecording && pieces.length > 0}
-            <div class="card bg-base-200 p-4 shadow-md">
+            <div class="card w-full">
                 <ScoreSelector
                     files={pieces}
                     selectedFile={selectedPiece}
                     onFileSelect={handlePieceSelect}
                 />
             </div>
-            {/if}
+        {/if}
         {#if selectedPiece}
-            <div class="flex w-full mt-4 justify-start">
+            <div class="flex w-full justify-start">
                 <div class="flex gap-6 w-full">
                     <div class="bg-base-100 w-full p-4 rounded-lg shadow flex flex-col items-start overflow-visible">
                         <button 
@@ -120,13 +125,55 @@
                     </div>
                 </div>
             </div>
+            <div class="bg-base-100 w-full p-4 rounded-lg shadow flex flex-col overflow-visible">
+                <h2 class="card-title justify-center">Display options</h2>
+                <label>
+                    <h3 class="mt-2 text-l">Color scheme</h3>
+                    <select
+                        class="select select-bordered w-full"
+                        bind:value={selectedColorDropdown}>
+                        <option value="viridisScheme">Viridis (default)</option>
+                        <option value="infernoScheme">Inferno</option>
+                        <option value="cividisScheme">Cividis</option>
+                        <option value="bluesScheme">Blue shades</option>
+                        <option value="greensScheme">Green shades</option>
+                        <option value="redsScheme">Red shades</option>
+                    </select>
+                </label>
+
+                <button class={`btn btn-sm btn-block mt-4 ${brushEnabled? "bg-base-300" : "btn-primary"}`}
+                    onclick={() => {
+                        brushEnabled = false;
+                        chart.clearSelection();
+                    }}
+                >Select single beat</button>
+
+                <button class={`btn btn-sm btn-block ${brushEnabled ? "btn-primary" : "bg-base-300"}`}
+                    onclick={() => {
+                        brushEnabled = true;
+                        chart.clearSelection();
+                    }}
+                >Draw selection of beats</button>
+            </div>
         {/if}
+        {#if displayedRows.length < tableRows.length}
+            <button class="btn btn-block btn-sm mt-2 btn-info" onclick={() => {
+                displayedRows = [...tableRows];
+                chart.clearSelection();
+            }}>
+                Back to complete performance
+            </button>
+        {/if}        
     </aside>
 
     <main class="flex-1 flex flex-col overflow-hidden">
         <div class="flex-1 relative p-6 overflow-auto mb-12">
             {#if active === "visualization"}
                 <MeiCircularRibbon
+                    bind:this = {chart}
+                    bind:brushEnabled
+                    bind:selectedColorDropdown
+                    bind:displayedRows
                     rows={tableRows}
                     metadata={metadata}
                 />
