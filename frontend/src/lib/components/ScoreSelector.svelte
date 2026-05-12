@@ -5,7 +5,8 @@
 		order?: number;
 	};
 	
-	let { files, selectedFile, onFileSelect}: {files: FileItem[]; selectedFile: string | null; onFileSelect: (file: string) => void} = $props();
+	let { files, selectedFile, onFileSelect}: 
+		{files: FileItem[]; selectedFile: string | null; onFileSelect: (file: string) => void} = $props();
 	
 	
 	const winterreiseTitles = [
@@ -52,7 +53,7 @@
 	);
 </script>
 
-<div class="flex w-full mt-4 justify-start">
+<div class="flex w-full mt-2 justify-start">
 	<div class="flex gap-6 max-w-4xl w-full">
 		<div class="bg-base-100 p-4 rounded-lg shadow flex flex-col items-start overflow-visible">
 			<label class="label w-full flex flex-col items-center">
