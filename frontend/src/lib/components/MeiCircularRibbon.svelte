@@ -13,24 +13,28 @@
         index: number;
     };
 
-    let { rows, metadata }: { rows: PerformanceRow[]; metadata: PerformanceMetadata | null } = $props();
+    let { rows, metadata, brushEnabled=$bindable(false), selectedColorDropdown=$bindable("viridisScheme"), displayedRows = $bindable([]) }:
+        { rows: PerformanceRow[]; metadata: PerformanceMetadata | null; brushEnabled?: boolean; selectedColorDropdown?: string; displayedRows? : PerformanceRow[] } = $props();
 
     let svg: SVGSVGElement;
     let container: HTMLDivElement;
     let resizeObserver: ResizeObserver;
 
     let selectedRow = $state<PerformanceRow | null>(null);
-    let displayedRows = $state<PerformanceRow[]>([]);
     let selectedMeasures = $state<PerformanceRow[]>([]);
-    let brushEnabled = $state(false);
     let isDraggingSelection = $state(false);
     let dragStartIndex: number | null = null;
-    let selectedColorDropdown = $state("viridisScheme");
     let width = $state(0);
     let height = $state(0);
 
+    let lastRowsRef = $state<PerformanceRow[]>([]);
+
     $effect(() => {
-        displayedRows = [...rows];
+        if (rows !== lastRowsRef) {
+            lastRowsRef = rows;
+            displayedRows = [...rows];
+            clearSelection();
+        }
     });
 
     function updateSize() {
@@ -85,7 +89,7 @@
         } satisfies ArcDatum));
     });
 
-    function clearSelection() {
+    export function clearSelection() {
         selectedMeasures = [];
         dragStartIndex = null;
         isDraggingSelection = false;
@@ -224,48 +228,6 @@
             </button>
         </div>
     {/if}
-
-    <!-- CONTROLS -->
-    <div class="absolute top-4 left-4 bg-base-200 p-4 rounded-xl shadow-xl max-w-[10vw]">
-        <label>
-            <span class="card-title">
-                Choose color scheme:
-            </span>
-            <select
-                class="select select-bordered w-full"
-                bind:value={selectedColorDropdown}>
-                <option value="viridisScheme">Viridis</option>
-                <option value="infernoScheme">Inferno</option>
-                <option value="cividisScheme">Cividis</option>
-                <option value="bluesScheme">Blue shades</option>
-                <option value="greensScheme">Green shades</option>
-                <option value="redsScheme">Red shades</option>
-            </select>
-        </label>
-
-        <button class={`btn btn-sm btn-block mt-4 ${brushEnabled? "bg-base-300" : "btn-primary"}`}
-            onclick={() => {
-                brushEnabled = false;
-                clearSelection();
-            }}
-        >Select single beat</button>
-
-        <button class={`btn btn-sm btn-block ${brushEnabled ? "btn-primary" : "bg-base-300"}`}
-            onclick={() => {
-                brushEnabled = true;
-                clearSelection();
-            }}
-        >Draw selection of beats</button>
-
-        {#if displayedRows.length < rows.length}
-            <button class="btn btn-block btn-sm btn-info mt-4"
-                onclick={() => {
-                    displayedRows = [...rows];
-                    clearSelection();
-                }}
-            >Show complete performance</button>
-        {/if}
-    </div>
 </div>
 
 <!-- INFORMATION -->
