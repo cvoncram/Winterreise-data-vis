@@ -243,7 +243,7 @@
         </ol>
     </div>
     <div>
-        <h3 class="card-title mt-2">How to use this tool</h3>
+        <h3 class="card-title">How to use this tool</h3>
         <p>If you find a different color scheme than the default <i>Viridis</i> scheme more helpful, you may choose among several options in the upper
             left corner.</p>
         <p>Clicking on a slab shows information about the according beat.</p>

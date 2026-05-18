@@ -73,7 +73,7 @@
     }
 </script>
 
-<div class="flex h-screen overflow-hidden">
+<div class="flex h-auto overflow-hidden">
 
     <aside class="w-64 shrink-0 bg-base-200 p-4 flex flex-col gap-4">
         {#if error}
