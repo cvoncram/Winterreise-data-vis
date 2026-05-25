@@ -1,11 +1,11 @@
-<footer class="footer footer-horizontal footer-center bg-base-200 p-5">
+<footer class="footer footer-horizontal footer-center bg-base-200 p-5 shadow-l">
   <aside>
         <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 20 20"
-                class="w-15 h-15"
-                id="logo"
-                >
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 20 20"
+            class="w-15 h-15"
+            id="logo"
+        >
             <g transform="translate(-379.76917,-329.19561)">
                 <path
                     style="fill-opacity:1"
@@ -21,7 +21,7 @@
                         h 1 1 v 1 h 1 1 v 1 h -1 -1 v -1 h -1 v 1 h -1 v -1 z m 6,0 h 1 1 1 1 1 1 v 1 1 h -1 -1 -1 -1 -1 v -1 h -1 z m 
                         -8,3 h 1 1 v 1 1 h -1 -1 v -1 z m 3,0 h 1 v 1 h -1 z m 2,0 h 1 v 1 h -1 z m 3,0 h 1 1 1 1 v 1 h -1 v 1 h -1 -1 
                         -1 -1 v -1 h 1 z" />
-                </g>
+            </g>
         </svg>
 
     <p>Copyright (c) {new Date().getFullYear()} Clemens von Cramon</p><br>

@@ -27,8 +27,8 @@ Install requirements:
 1. Configure your GitHub token and repository info in the backend code.
 2. Activate the virtual environment (if you haven't done so already) and start the FastAPI server:
 
-    source venv/bin/activate
-    uvicorn main:app --reload
+    `source venv/bin/activate
+    uvicorn main:app --reload`
 
 - Backend listens on `http://127.0.0.1:8000`.
 - Endpoints:

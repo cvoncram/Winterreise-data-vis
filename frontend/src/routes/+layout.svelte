@@ -78,18 +78,7 @@
     div#home:hover{
         background-color: oklch(51% 0.096 186.391);
     }
-
-
-    /* maybe later
-    .page-title a:hover {
-        color: #e2e8f0;
-        background-color: rgb(129 161 193);
-        padding: 5px;
-        border-radius: 5px;
-
-    }
-    */
-    
+   
     .nav-items {
         justify-self: center;
         display: flex;
@@ -99,11 +88,5 @@
     .nav-items > * {
         width: 110px;
     }
-    
-    /** (maybe for later, to have an element at the right of the navbar)
-    .right-items {
-        justify-self: end;
-    }
-    **/
-    
+       
 </style>
