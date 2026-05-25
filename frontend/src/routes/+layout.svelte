@@ -1,6 +1,7 @@
 <script lang="ts">
 	import "../app.css";
 	import { page } from "$app/state";
+	import Footer from "$lib/components/Footer.svelte";
 
 	let { children } = $props();
 
@@ -42,15 +43,18 @@
         </a>
     </div>
     <div class="nav-items">
-        <a class="btn btn-success" href="/scores">Scores</a>
-        <a class="btn btn-success" href="/performances">Performances</a>
+        <a class="btn btn-success" href="/documentation">Documentation</a>
         <a class="btn btn-success" href="/analysis">Analysis</a>
+        <a class="btn btn-success" href="/scores">Scores</a>
+        <a class="btn btn-success" href="/visualizations">Visualizations</a>
     </div>
 </div>
 
 <main>
     {@render children()}
 </main>
+
+<Footer />
 
 <style global()>
     
