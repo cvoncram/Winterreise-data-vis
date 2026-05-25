@@ -1,13 +1,12 @@
 <!-- deprecated, only sliderControl is used -->
 
 <script lang="ts">
-    export let onZoomIn: () => void;
-    export let onZoomOut: () => void;
+    let {onZoomIn, onZoomOut}: {onZoomIn: () => void; onZoomOut: () => void;} = $props();
 </script>
 
 <div class="zoom-controls">
-    <button on:click={onZoomOut}>- Zoom</button>
-    <button on:click={onZoomIn}>+ Zoom</button>
+    <button onclick={onZoomOut}>- Zoom</button>
+    <button onclick={onZoomIn}>+ Zoom</button>
 </div>
 
 <style>
