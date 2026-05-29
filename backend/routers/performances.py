@@ -125,9 +125,35 @@ def list_performance_files(performance: str):
             # Extract the piece number from the filename
             match = re.search(r"_(\d+)_", filename)
             piece_num = int(match.group(1)) if match else 0
+            piece_titles = [
+                "Gute Nacht",
+                "Die Wetterfahne",
+                "Gefror'ne Tränen",
+                "Erstarrung",
+                "Der Lindenbaum",
+                "Wasserflut",
+                "Auf dem Flusse",
+                "Rückblick",
+                "Irrlicht",
+                "Rast",
+                "Frühlingstraum",
+                "Einsamkeit",
+                "Die Post",
+                "Der greise Kopf",
+                "Die Krähe",
+                "Letzte Hoffnung",
+                "Im Dorfe",
+                "Der stürmische Morgen",
+                "Täuschung",
+                "Der Wegweiser",
+                "Das Wirtshaus",
+                "Mut",
+                "Die Nebensonnen",
+                "Der Leiermann"
+                ]
 
             # Create a nice label
-            label = f"Piece {piece_num}"
+            label = f"{piece_num}. {piece_titles[piece_num - 1]}"
 
             files.append({
                 "name": filename,
