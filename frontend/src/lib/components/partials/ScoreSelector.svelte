@@ -1,12 +1,8 @@
 <script lang="ts">
-	type FileItem = {
-		path: string;
-		label: string;
-		order?: number;
-	};
+	import type {SongInfo} from "$lib/types"
 	
 	let { files, selectedFile, onFileSelect}: 
-		{files: FileItem[]; selectedFile: string | null; onFileSelect: (file: string) => void} = $props();
+		{files: SongInfo[]; selectedFile: SongInfo | null; onFileSelect: (file: SongInfo) => void} = $props();
 	
 	
 	const winterreiseTitles = [
@@ -39,17 +35,17 @@
 	// Auto-select first file when files arrive
 	$effect(()=> {
 		if (files.length > 0 && !selectedFile) {
-			selectedFile = files[0].path;
+			selectedFile = files[0];
 			onFileSelect(selectedFile);
 		}
 	});
 	
 	// Map backend files to song titles with track numbers
 	const filesWithTitles = $derived(
-	files.map((file, idx) => ({
-		...file,
-		label: `${idx + 1}. ${winterreiseTitles[idx] || file.label}`
-	}))
+		files.map((file, idx) => ({
+			...file,
+			label: `${idx + 1}. ${winterreiseTitles[idx] || file.label}`
+		}))
 	);
 </script>
 
@@ -60,15 +56,17 @@
 				<span class="label-text mb-2 text-lg font-semibold">Select piece</span>
 				<select
 				class="select select-bordered w-full"
-				bind:value={selectedFile}
-				onchange={(e) => onFileSelect(e.currentTarget.value)}
+				onchange={(e) => {
+					const selected = filesWithTitles.find(f => f.path === e.currentTarget.value);
+					if (selected) onFileSelect(selected);
+				}}
 				disabled={filesWithTitles.length === 0}
 				>
 				{#each filesWithTitles as file}
-				<option value={file.path}>{file.label}</option>
+					<option value={file.path} selected={selectedFile?.path === file.path}>{file.label}</option>
 				{/each}
-			</select>
-		</label>
+				</select>
+			</label>
+		</div>
 	</div>
-</div>
 </div>

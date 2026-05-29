@@ -5,7 +5,7 @@
     import type {
         PerformanceRow,
         PerformanceMetadata
-    } from "$lib/components/MeiTable.svelte";
+    } from "$lib/types";
 
     type ArcDatum = d3.PieArcDatum<PerformanceRow> & {
         thickness: number;

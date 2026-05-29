@@ -1,23 +1,18 @@
 <script lang="ts">
     import { onMount } from 'svelte';
-    import ScoreSelector from '$lib/components/ScoreSelector.svelte';
-    import MeiViewer from '$lib/components/MeiViewer.svelte';
-    
-    type FileItem = {
-        path: string;
-        label: string;
-        order?: number;
-    };
+    import ScoreSelector from '$lib/components/partials/ScoreSelector.svelte';
+    import MeiViewer from '$lib/components/containers/MeiViewer.svelte';
+    import type {SongInfo} from "$lib/types"   
 
-    let files = $state<FileItem[]>([]);
-    let selectedFile = $state<string | null>(null);
+    let files = $state<SongInfo[]>([]);
+    let selectedFile = $state<SongInfo | null>(null);
     let meiContent = $state<string | null>(null);
     let error = $state<string>('');
     
-    async function fetchSelectedFile(file: string) {
+    async function fetchSelectedFile(file: SongInfo) {
         try {
             const res = await fetch(
-            `/db/file?path=${encodeURIComponent(file)}`
+            `/db/file?path=${encodeURIComponent(file.path)}`
             );
             
             if (!res.ok) throw new Error('Could not fetch MEI file');
@@ -32,7 +27,7 @@
         }
     }  
     
-    function handleFileSelect(file: string) {
+    function handleFileSelect(file: SongInfo) {
         selectedFile = file;
         fetchSelectedFile(file);
     }
@@ -59,7 +54,7 @@
         <div class="card bg-base-200 p-4 shadow-md justify-start">
             <ScoreSelector
             {files}
-            {selectedFile}
+            selectedFile={selectedFile}
             onFileSelect={handleFileSelect}
             />
             {#if error}

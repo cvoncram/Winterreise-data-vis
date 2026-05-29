@@ -1,7 +1,7 @@
 <script lang="ts">
     import { onMount } from 'svelte';
-    import PageControls from './PageControls.svelte';
-    import SliderControl from './SliderControl.svelte';
+    import PageControls from '../partials/PageControls.svelte';
+    import SliderControl from '../partials/SliderControl.svelte';
     
     let {src}: {src: string} = $props();
 

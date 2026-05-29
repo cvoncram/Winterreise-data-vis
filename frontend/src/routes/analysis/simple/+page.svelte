@@ -1,102 +1,115 @@
 <script lang="ts">
 	import { onMount } from "svelte";
-    import * as d3 from "d3";
-    import type { PerformanceRow, PerformanceMetadata } from "$lib/components/MeiTable.svelte";
+    import type { SongInfo, CyclePerformance, Parameter, PerformanceRow, PerformanceMetadata } from "$lib/types";
+    import MultiplePerformancesSelector from "$lib/components/partials/MultiplePerformancesSelector.svelte";
+	import ScoreSelector from "$lib/components/partials/ScoreSelector.svelte";
+	import ParameterSelector from "$lib/components/partials/ParameterSelector.svelte";
+	import LineGraph from "$lib/components/containers/LineGraph.svelte";
 
-    let data;
-    let container: HTMLDivElement;
-    let error;
-    let svgNode: SVGSVGElement | null;
-    let path = "performances/1967_Moore/1967_Moore_1_Audio_Data.xml";
-    let tableRows = $state<PerformanceRow[]>([]);
-    let width: number = 1500;
+    
+    let allPerformances = $state<CyclePerformance[]>([]);
+    let selectedPerformances = $state<CyclePerformance[]>([]);
+    let pieces = $state<SongInfo[]>([]);
+    let selectedPiece = $state<SongInfo | null>(null);
+    let selectedParameter = $state<Parameter>("dynamics");
+    let error: string = $state("");
 
-    onMount(async () => {
+    let graphPerformances = $state<PerformanceRow[][]>([]);
+    let graphMetadata = $state<PerformanceMetadata[]>([]);
+    let showGraph = $state(false);
+            
+    
+    async function selectPiece(piece: SongInfo) {
+        selectedPiece = piece;
+        selectedPerformances = allPerformances.map(perf => ({
+            ...perf,
+            songPerformances: [{ song: piece, rows: [] }]
+        }));
+    }
+
+    async function selectParameter (parameter: Parameter) {
+        selectedParameter = parameter;
+    }
+
+    async function generateGraph() {
+        if (!selectedPiece || selectedPerformances.length === 0) return;
         try {
-            const res = await fetch(`/db/parsed-file?path=${encodeURIComponent(path)}`);
-            if (!res.ok) throw new Error('Error');
-            data = await res.json();
-            tableRows = data[1]?.data ?? [];
-            svgNode = createSimpleGraph(tableRows, width);
-            container.appendChild(svgNode!);
+            const results = await Promise.all(
+            selectedPerformances.map(async (perf) => {
+                const folder = perf.path;
+                const fileNumber = selectedPiece!.nbInOrder;
+                const fileName = `${folder}/${folder.split('/').pop()}_${fileNumber}_Audio_Data.xml`;
+                return fetch(`/db/parsed-file?path=performances/${encodeURIComponent(fileName)}`)
+                .then(res => {
+                    if (!res.ok) throw new Error(`Could not fetch ${perf.label}`);
+                    return res.json();
+                });
+            })
+            );
+            graphPerformances = results.map(r => r[1].data);
+            graphMetadata = results.map(r => r[0].metadata);
+            showGraph = true;
         } catch (e: any) {
             error = e.message;
             console.error(e);
         }
-    });
-
-    function createSimpleGraph(tableRows: PerformanceRow[], width: number) {
-
-        const height = 500;
-
-        const data = tableRows.filter(r => r.timbre !== null);
-
-        const x = d3.scalePoint<string>()
-            .domain(data.map(r => r.measure))
-            .range([0, width]);
-
-        const y = d3.scaleLinear()
-            .domain([0, Math.max(...data.map(r => r.timbre!))])
-            .range([height, 0]);
-
-        const line = d3.line<PerformanceRow>()
-        .x(d => x(d.measure)!)
-        .y(d => y(d.timbre!));
-
-        const svg = d3.create("svg")
-            .attr("width", width)
-            .attr("height", height);
-
-        const margin = { top: 20, right: 20, bottom: 30, left: 40 };
-
-        svg.append("g")
-            .attr("transform", `translate(0, ${height})`)  // bottom
-            .call(d3.axisBottom(x));
-
-        svg.append("g")
-            .attr("transform", `translate(${margin.left}, 0)`)  // left
-            .call(d3.axisLeft(y));
-
-        svg.append("path")
-            .attr("fill", "none")
-            .attr("stroke", "steelblue")
-            .attr("stroke-width", 1.5)
-            .attr("d", line(data));
-
-        return svg.node();
     }
 
-    
+    onMount(async () => {
+        try {
+            const perfRes = await fetch('/db/performances');
+            if (!perfRes.ok) throw new Error('Could not fetch file list');
+            const perfList = await perfRes.json();
+
+            const piecesRes = await fetch("/db/scores-folder");
+            if (!piecesRes.ok) throw new Error("could not fetch pieces list");
+            const piecesList = await piecesRes.json();
+
+            pieces = piecesList.map((p: any) => ({
+                label: p.label,
+                nbInOrder: p.order,
+                path: p.path
+            }));
+
+            allPerformances = perfList.map((p: any) => ({
+                path: p.path,
+                label: p.label,
+                songPerformances: [],
+                metadata: { sampleRate: 0, mfValue: 0, dynamicStep: 0 }
+            }));
+            
+        } catch (e: any) {
+            error = e.message;
+            console.error(e);
+        }
+    })
+
     
 
 </script>
 
+<div class="flex">
+    <div class="fixed top-0 left-0 h-full w-64 bg-base-200 p-4 flex flex-col justify-center items-center gap-4 z-10">
+        
+        <div class="card bg-base-200 p-4 shadow-md justify-start">
+            <ScoreSelector files={pieces} selectedFile={selectedPiece} onFileSelect={selectPiece} />
+            <ParameterSelector selectedParameter={selectedParameter} onParameterSelect={selectParameter}/>
+            <MultiplePerformancesSelector performances={allPerformances} bind:selectedPerformances={selectedPerformances}/>
+            {#if error}
+            <p class="text-error mt-2">{error}</p>
+            {/if}
+            <button class="btn btn-success" onclick={generateGraph} type="submit">Generate Graph</button>
+        </div>
+    </div>
 
-<div bind:this={container}>
-    <svg></svg>
-</div>
+    <div class="ml-64 p-4">
+    {#if showGraph}
+        <LineGraph performances={graphPerformances} parameter={selectedParameter} metadata={graphMetadata} />
+    {:else}
+        <div class="flex items-center justify-center w-full h-[80vh] bg-base-200 rounded-lg">
+        <p class="text-base-content opacity-50">Select a piece, parameter and performances, then click Generate Graph</p>
+        </div>
+    {/if}
+    </div>
 
-{#if tableRows.length > 0}
-<div class="overflow-auto mt-4">
-  <table class="table table-zebra w-full">
-    <thead>
-      <tr>
-        <th>Measure</th>
-        <th>Tempo</th>
-        <th>Dynamics</th>
-        <th>Spectral Centroid</th>
-      </tr>
-    </thead>
-    <tbody>
-      {#each tableRows as row}
-        <tr>
-          <td>{row.measure}</td>
-          <td>{row.tempo ?? "-"}</td>
-          <td>{row.dynamics ?? "-"}</td>
-          <td>{row.timbre ?? "-"}</td>
-        </tr>
-      {/each}
-    </tbody>
-  </table>
 </div>
-{/if}

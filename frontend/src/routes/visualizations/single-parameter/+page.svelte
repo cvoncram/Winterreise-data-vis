@@ -1,18 +1,16 @@
 <script lang="ts">
     import { onMount } from 'svelte';
-    import PerformanceSelector from '$lib/components/PerformanceSelector.svelte';
-    import ScoreSelector from '$lib/components/ScoreSelector.svelte';
-    import MeiTable from '$lib/components/MeiTable.svelte';
-    import MeiCircularRibbon from '$lib/components/MeiCircularRibbon.svelte';
-    import type { PerformanceRow, PerformanceMetadata } from '$lib/components/MeiTable.svelte';
+    import PerformanceSelector from '$lib/components/partials/PerformanceSelector.svelte';
+    import ScoreSelector from '$lib/components/partials/ScoreSelector.svelte';
+    import MeiTable from '$lib/components/containers/MeiTable.svelte';
+    import MeiCircularRibbon from '$lib/components/containers/MeiCircularRibbon.svelte';
+    import type { PerformanceRow, PerformanceMetadata, SongInfo, CyclePerformance } from '$lib/types';
 
-    type FileItem = { path: string; label: string; order?: number };
+    let recordings = $state<CyclePerformance[]>([]);
+    let selectedRecording = $state<CyclePerformance | null>(null);
 
-    let recordings = $state<FileItem[]>([]);
-    let selectedRecording = $state<string | null>("");
-
-    let pieces = $state<FileItem[]>([]);
-    let selectedPiece = $state<string | null>("");
+    let pieces = $state<SongInfo[]>([]);
+    let selectedPiece = $state<SongInfo | null>(null);
 
     let metadata = $state<PerformanceMetadata | null>(null);
 
@@ -36,14 +34,14 @@
         }
     });
 
-    async function handleRecordingSelect(path: string) {
-        selectedRecording = path;
+    async function handleRecordingSelect(recording: CyclePerformance) {
+        selectedRecording = recording;
         pieces = [];
         selectedPiece = null;
         tableRows = [];
 
         try {
-            const res = await fetch(`/db/performance-files?performance=${encodeURIComponent(path)}`);
+            const res = await fetch(`/db/performance-files?performance=${encodeURIComponent(recording.path)}`);
             if (!res.ok) throw new Error('Could not fetch pieces for recording');
             pieces = await res.json();
         } catch (e: any) {
@@ -52,13 +50,13 @@
         }
     }
 
-    async function handlePieceSelect(path: string) {
-        selectedPiece = path;
+    async function handlePieceSelect(piece: SongInfo) {
+        selectedPiece = piece;
         tableRows = [];
         error = '';
 
         try {
-            const res = await fetch(`/db/parsed-file?path=${encodeURIComponent(path)}`);
+            const res = await fetch(`/db/parsed-file?path=${encodeURIComponent(piece.path)}`);
             if (!res.ok) throw new Error('Could not fetch parsed MEI data');
 
             const data = await res.json();

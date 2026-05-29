@@ -1,17 +1,15 @@
 <script lang="ts" >
 
     import { onMount } from 'svelte';
-    import PerformanceSelector from '$lib/components/PerformanceSelector.svelte';
-    import ScoreSelector from '$lib/components/ScoreSelector.svelte';
-    import type { PerformanceRow} from '$lib/components/MeiTable.svelte';
-    import MeiRibbon from '$lib/components/MeiRibbon.svelte';
+    import PerformanceSelector from '$lib/components/partials/PerformanceSelector.svelte';
+    import ScoreSelector from '$lib/components/partials/ScoreSelector.svelte';
+    import type { CyclePerformance, PerformanceRow, SongInfo} from '$lib/types';
+    import MeiRibbon from '$lib/components/unused/MeiRibbon.svelte';
 
-    type FileItem = { path: string; label: string; order?: number };
-
-    let recordings: FileItem[] = [];
+    let recordings: CyclePerformance[] = [];
     let selectedRecording: string | null = null;
 
-    let pieces: FileItem[] = [];
+    let pieces: SongInfo[] = [];
     let selectedPiece: string | null = null;
 
     let tableRows: PerformanceRow[] = [];

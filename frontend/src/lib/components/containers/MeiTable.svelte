@@ -1,18 +1,5 @@
-<script lang="ts" module>
-  export type PerformanceRow = {
-    measure: string;
-    tempo: number | null;
-    dynamics: string | null;
-    timbre: number | null;
-  };
-  export type PerformanceMetadata = {
-    sampleRate: number;
-    mfValue: number;
-    dynamicStep: number;
-  }
-</script>
-
 <script lang="ts">
+  import type {PerformanceRow} from "$lib/types"
   let {rows = []}: {rows: PerformanceRow[]} = $props();
 </script>
 

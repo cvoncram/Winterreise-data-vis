@@ -1,6 +1,6 @@
 <script lang="ts">
     import MeiCircularRibbon from "./MeiCircularRibbon.svelte";
-    import type { PerformanceMetadata, PerformanceRow } from "./MeiTable.svelte";
+    import type { PerformanceMetadata, PerformanceRow } from "$lib/types";
 
     let {performancesData, metadata}: {performancesData: PerformanceRow[][]; metadata: PerformanceMetadata[]} = $props();
     const evenNbPerfs = $derived(performancesData.length % 2 === 0);

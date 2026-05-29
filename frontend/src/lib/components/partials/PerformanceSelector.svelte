@@ -1,17 +1,13 @@
 <script lang="ts">
-	type FileItem = {
-		path: string;
-		label: string;
-		order?: number;
-	};
+	import type {CyclePerformance} from "$lib/types"
 	
 	let {recordings = [], selectedRecording = null, onSelect}: 
-	{recordings: FileItem[]; selectedRecording: string | null; onSelect: (recording: string) => void} = $props();
+	{recordings: CyclePerformance[]; selectedRecording: CyclePerformance | null; onSelect: (recording: CyclePerformance) => void} = $props();
 	
 	// Auto-select first recording when list arrives
 	$effect (() => {
 		if (recordings.length > 0 && !selectedRecording) {
-			selectedRecording = recordings[0].path;
+			selectedRecording = recordings[0];
 			onSelect(selectedRecording);
 		}
 	});
@@ -24,12 +20,14 @@
 				<span class="label-text mb-2 text-lg font-semibold">Select performance</span>
 				<select
 				class="select select-bordered w-full"
-				bind:value={selectedRecording}
-				onchange={(e) => onSelect(e.currentTarget.value)}
+				onchange={(e) => {
+					const selected = recordings.find(r => `${r.path}` === e.currentTarget.value);
+					if (selected) onSelect(selected);
+				}}
 				disabled={recordings.length === 0}
 				>
 				{#each recordings as rec}
-				<option value={rec.path}>{rec.label}</option>
+					<option value="{rec.path}">{rec.label}</option>
 				{/each}
 				</select>
 			</label>

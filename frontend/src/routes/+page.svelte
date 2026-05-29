@@ -1,7 +1,3 @@
-<script lang="ts">
-    import Footer from "$lib/components/Footer.svelte";
-</script>
-
 <div class="relative flex flex-col items-center px-[20%] overflow-hidden">
     <div 
         class="absolute inset-0 bg-cover bg-center opacity-50"

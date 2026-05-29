@@ -1,5 +1,5 @@
 <script lang="ts">
-	import IntroGallery from "$lib/components/IntroGallery.svelte";
+	import IntroGallery from "$lib/components/partials/IntroGallery.svelte";
 
     let {title, description, pages, images, links}: {title: string; description: string; pages: string[]; images: string[]; links: string[]} = $props();
 </script>
