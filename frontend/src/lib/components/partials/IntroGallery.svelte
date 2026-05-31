@@ -19,7 +19,7 @@
         <div class="min-w-85 min-h-60 max-h-100 card">
             <div class="card-body">
                 <img class:opacity-50={hovered[i]} class="rounded-xl h-full object-cover w-full" src={images[i]} alt="Screenshot" />
-                <h2 class:invisible={!hovered[i]} class="absolute top-[50%] left-[50%] text-6xl text-success translate-[-50%]">{title}</h2>
+                <h2 class:invisible={!hovered[i]} class="absolute top-[50%] left-[50%] text-6xl text-primary translate-[-50%]">{title}</h2>
             </div>
         </div>
         <!-- 8 empty divs needed for the 3D effect -->

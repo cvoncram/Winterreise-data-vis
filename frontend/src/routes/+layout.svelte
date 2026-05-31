@@ -43,10 +43,10 @@
         </a>
     </div>
     <div class="nav-items">
-        <a class="btn btn-success" href="/documentation">Documentation</a>
-        <a class="btn btn-success" href="/analysis">Analysis</a>
-        <a class="btn btn-success" href="/scores">Scores</a>
-        <a class="btn btn-success" href="/visualizations">Visualizations</a>
+        <a class="btn btn-primary" href="/documentation">Documentation</a>
+        <a class="btn btn-primary" href="/analysis">Analysis</a>
+        <a class="btn btn-primary" href="/scores">Scores</a>
+        <a class="btn btn-primary" href="/visualizations">Visualizations</a>
     </div>
 </div>
 
@@ -70,13 +70,13 @@
         justify-self: start;
     }
     :global(svg path#path387-7) {
-        fill: oklch(51% 0.096 186.391);
+        fill:  #668ba4;
     }
     :global(svg:hover path#path387-7) {
         fill: var(--color-base-200);
     }
     div#home:hover{
-        background-color: oklch(51% 0.096 186.391);
+        background-color:  #668ba4;
     }
    
     .nav-items {

@@ -9,7 +9,7 @@
             <g transform="translate(-379.76917,-329.19561)">
                 <path
                     style="fill-opacity:1"
-                    fill="oklch(51% 0.096 186.391)"
+                    fill="#668ba4"
                     d="m 384.76917,329.1956 v 1 h -1 v 1 h -1 v 1 h -1 -1 v -1 h -1 v 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 h 1 v -1 
                         h 1 1 1 1 1 v 1 h 1 v 1 h -1 v 1 h -1 v -1 h -1 v -1 h -1 v 1 h -1 v 1 h 1 v 1 h 1 1 1 1 v -1 h 1 v -1 -1 
                         -1 h 1 1 1 1 1 v 1 h 1 1 v -1 h 1 1 1 1 1 v -1 h -1 -1 -1 -1 v -1 -1 h 1 1 1 1 v -1 h -1 -1 -1 -1 v -1 -1 

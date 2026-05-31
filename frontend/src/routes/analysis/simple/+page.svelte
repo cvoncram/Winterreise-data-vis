@@ -98,11 +98,11 @@
             {#if error}
             <p class="text-error mt-2">{error}</p>
             {/if}
-            <button class="btn btn-success" onclick={generateGraph} type="submit">Generate Graph</button>
+            <button class="btn btn-primary" onclick={generateGraph} type="submit">Generate Graph</button>
         </div>
     </div>
 
-    <div class="ml-64 p-4">
+    <div class="ml-64 mt-15 p-4">
     {#if showGraph}
         <LineGraph performances={graphPerformances} parameter={selectedParameter} metadata={graphMetadata} />
     {:else}
