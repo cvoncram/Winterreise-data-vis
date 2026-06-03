@@ -4,7 +4,7 @@
     let description: string = "You can use this tool to create several different analyses.\n\n(More text to follow...)";
     let pages: string[] = ["Simple", "Multiple parameters"];
     let images: string[] = ["/Winterreise_manuscript.jpg", "screenshot_perfs.png"];
-    let links: string[] = ["/analysis/simple", "/visualizations/multi-parameter"]
+    let links: string[] = ["/analysis/simple", "analysis/complex"]
 </script>
 
 <LandingPage title={title} description={description} pages={pages} images={images} links={links} />
