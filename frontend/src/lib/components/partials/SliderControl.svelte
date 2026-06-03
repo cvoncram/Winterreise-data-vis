@@ -8,12 +8,12 @@
 
 	function handleInput(event: Event) {
 		const target = event.target as HTMLInputElement;
-		localValue = +target.value; // update label immediately
+		localValue = +target.value;
 	}
 
 	function handleChange(event: Event) {
 		const target = event.target as HTMLInputElement;
-		onChange(+target.value); // only commit on release
+		onChange(+target.value);
 	}
 </script>
 

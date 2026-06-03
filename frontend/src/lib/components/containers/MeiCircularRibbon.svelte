@@ -138,7 +138,7 @@
                 isDraggingSelection = true;
                 dragStartIndex = d.index;
             })
-            .on("pointermove", (event, d) => {
+            .on("pointermove", (_, d) => {
                 if (!isDraggingSelection || dragStartIndex == null) return;
 
                 const start = Math.min(dragStartIndex, d.index);

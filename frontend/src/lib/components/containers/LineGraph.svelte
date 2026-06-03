@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { onMount } from "svelte";
 	import type { PerformanceRow, PerformanceMetadata } from "$lib/types";
     import * as d3 from "d3";
 
@@ -9,7 +8,7 @@
 
     $effect(() => {
         if (performances.length === 0) return;
-        container.innerHTML = ''; // clear previous graph
+        container.innerHTML = '';
         const node = createLineGraph(performances, parameter, colors);
         if (node) container.appendChild(node);
     });
@@ -36,15 +35,21 @@
         return numVals;
     }
 
-    export function createLineGraph(performances: PerformanceRow[][], parameter: string, colors: string[]) {
-        const width = 1400;
-        const height = 800;
+    function createLineGraph(performances: PerformanceRow[][], parameter: string, colors: string[]) {
+        const margin = { top: 20, right: 20, bottom: 60, left: 80 };
+        const width = 1400 - margin.left - margin.right;
+        const height = 800 - margin.top - margin.bottom;
         const refMeasures = performances[0].map(r => r.measure);
 
-        const x = d3.scalePoint<string>()
-            .domain(refMeasures)
-            .range([0, width]);
+        const svg = d3.create("svg")
+            .attr("width", width + margin.left + margin.right)
+            .attr("height", height + margin.top + margin.bottom);
 
+        
+        const g = svg.append("g")
+            .attr("transform", `translate(${margin.left}, ${margin.top})`);
+
+            
         function xLabeling (interval: number) {
             let values = [];
             for (let i = 0; i < refMeasures.length; i += interval) {
@@ -52,17 +57,10 @@
             }
             return values;
         };
-
-        const svg = d3.create("svg")
-            .attr("width", width)
-            .attr("height", height)
-            .attr("transform", "translate(0, -50)")
-
-        const margin = { top: 20, right: 20, bottom: 40, left: 40 };
-
-        svg.append("g")
-            .attr("transform", `translate(${margin.left + 40}, ${height - 20})`)
-            .call(d3.axisBottom(x).tickValues(xLabeling(refMeasures.length/20)));
+            
+        const x = d3.scalePoint<string>()
+            .domain(refMeasures)
+            .range([0, width]);
 
         let graphData: number[][] = [[]];
 
@@ -81,25 +79,28 @@
             .domain([0, maxVal])
             .range([height, 0]);
 
+        g.append("g")
+            .attr("transform", `translate(0, ${height})`)
+            .call(d3.axisBottom(x).tickValues(xLabeling(20)));
+
+        g.append("g")
+            .call(d3.axisLeft(y));
+
         performances.forEach((p, i) => {
-        const line = d3.line<number>()
+            const line = d3.line<number>()
             .x((_, j) => x(refMeasures[j])!)
             .y(d => y(d));
-        svg.append("path")
+            g.append("path")
             .attr("d", line(graphData[i]))
             .attr("fill", "none")
             .attr("stroke", colors[i]);
         });
-
-        svg.append("g")
-            .attr("transform", `translate(${margin.left + 40}, -20)`)
-            .call(d3.axisLeft(y));
 
         return svg.node();
     }  
 
 </script>
 
-<div bind:this={container} class="relative w-full h-[80vh]">
+<div bind:this={container} class="relative p-5 w-full">
 
 </div>
