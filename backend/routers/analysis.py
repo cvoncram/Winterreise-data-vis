@@ -6,6 +6,7 @@ import requests
 import base64
 from config import OWNER, REPO, BRANCH
 
+
 router = APIRouter()
 
 @router.get("/db/analysis")
@@ -19,9 +20,10 @@ def calculate_dtw(
     
     performances = []
     for path in paths:
-        folder_name = path.split('/')[-1]
-        file_path = f"{path}/{folder_name}_{piece}_Audio_Data.xml"
+        folder_name = path
+        file_path = f"performances/{path}/{folder_name}_{piece}_Audio_Data.xml"
         url = f"https://api.github.com/repos/{OWNER}/{REPO}/contents/{file_path}?ref={BRANCH}"
+        print (url);
         r = requests.get(url, headers=headers)
         r.raise_for_status()
         xml = base64.b64decode(r.json()["content"]).decode()
@@ -29,6 +31,8 @@ def calculate_dtw(
             "data": parse_mei_to_rows(xml),
             "metadata": parse_mei_metadata(xml)
         })
+
+    
     
     result = calculate_dtw_matrix(parameter, piece, performances)
     return result
