@@ -43,6 +43,8 @@
         popup.classList.add("hidden");
     }
 
+    
+
     function attachGraph(container: HTMLDivElement) {
         const simulation = d3.forceSimulation<GraphNode>(nodes)
             .force("link", d3.forceLink<GraphNode, GraphLink>(links).distance(d => (d.distance * 8) / maxDistance * 100))
@@ -101,6 +103,28 @@
                 .attr("cx", d => (d as any).x)
                 .attr("cy", d => (d as any).y);
         });
+
+        nodeSelection.call(d3.drag<SVGCircleElement, GraphNode>()
+            .on("start", dragstarted)
+            .on("drag", dragged)
+            .on("end", dragended));
+
+        function dragstarted(event: d3.D3DragEvent<SVGCircleElement, GraphNode, GraphNode>) {
+            if (!event.active) simulation.alphaTarget(0.3).restart();
+            event.subject.fx = event.subject.x;
+            event.subject.fy = event.subject.y;
+        }
+
+        function dragged(event: d3.D3DragEvent<SVGCircleElement, GraphNode, GraphNode>) {
+            event.subject.fx = event.x;
+            event.subject.fy = event.y;
+        }
+
+        function dragended(event: d3.D3DragEvent<SVGCircleElement, GraphNode, GraphNode>) {
+            if (!event.active) simulation.alphaTarget(0);
+            event.subject.fx = null;
+            event.subject.fy = null;
+        }
 
         const svgNode = svg.node()!;
         container.appendChild(svgNode);
