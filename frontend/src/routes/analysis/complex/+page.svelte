@@ -3,10 +3,10 @@
     import DtwNetwork from "$lib/components/containers/DtwNetwork.svelte";
 
     let linkWidth = $state(200);
-    let linkLength = $state(5);
+    let nodeSize = $state(10);
     
     
-    const testNodes = [{id:0}, {id:1}, {id:2}, {id:3}, {id:4}, {id:5}, {id:6}, {id:7}, {id:8}, {id:9}];
+    const testNodes = [{id:0, label: "arsch"}, {id:1, label: "penis"}, {id:2, label:"schwanz"}, {id:3, label:"pöter"}, {id:4, label:"fotzenfritz"}, {id:5}, {id:6}, {id:7}, {id:8}, {id:9}];
     const testLinks = [
     { source: 0, target: 1, distance: 57.7 },
     { source: 0, target: 2, distance: 49.2 },
@@ -55,31 +55,33 @@
     { source: 8, target: 9, distance: 45.2 }
     ];
         
-    </script>
+</script>
     
-    <div class="flex">
-        <div class="fixed top-0 left-0 h-full w-64 bg-base-200 p-4 flex flex-col justify-center items-center gap-4 z-10">
-            
-            <div class="card bg-base-200 p-4 shadow-md justify-start">
-                <SliderControl
-                label="Link width"
-                min={10}
-                max={400}
-                value={linkWidth}
-                onChange={(w) => { linkWidth = w}}
-                />
-                <SliderControl
-                label="Link length"
-                min={1}
-                max={20}
-                value={linkLength}
-                onChange={(w) => { linkLength = w}}
-                />
-            </div>
-        </div>
+<div class="flex h-auto overflow-hidden">
+    <aside class="w-64 shrink-0 bg-base-200 p-4 items-center flex flex-col justify-center gap-4">
         
-        <div class="ml-64 mt-15 p-4">
-            <DtwNetwork links={testLinks} nodes={testNodes} bind:linkWidth={linkWidth} bind:linkLength={linkLength} />   
+        <div class="card bg-base-200 p-4 shadow-md justify-start">
+            <SliderControl
+            label="Link width"
+            min={10}
+            max={400}
+            value={linkWidth}
+            onChange={(w) => { linkWidth = w}}
+            />
+            <SliderControl
+            label="Node size"
+            min={1}
+            max={20}
+            value={nodeSize}
+            onChange={(w) => { nodeSize = w}}
+            />
         </div>
-        
-    </div>
+    </aside>
+    
+    <main class="flex-1 flex flex-col p-10 overflow-hidden">
+        <div style="background-color: rgba(254, 255, 223, .2);" class="border-2 border-[#668ba4] rounded-xl bg-base-200">
+            <DtwNetwork links={testLinks} nodes={testNodes} bind:linkWidth={linkWidth} bind:nodeSize={nodeSize} />   
+        </div>
+    </main>
+    
+</div>

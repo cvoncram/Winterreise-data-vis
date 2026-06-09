@@ -4,13 +4,6 @@
 	let {recordings = [], selectedRecording = null, onSelect}: 
 	{recordings: CyclePerformance[]; selectedRecording: CyclePerformance | null; onSelect: (recording: CyclePerformance) => void} = $props();
 	
-	// Auto-select first recording when list arrives
-	$effect (() => {
-		if (recordings.length > 0 && !selectedRecording) {
-			selectedRecording = recordings[0];
-			onSelect(selectedRecording);
-		}
-	});
 </script>
 
 <div class="flex w-full mt-2 justify-start">
@@ -20,14 +13,15 @@
 				<span class="label-text mb-2 text-lg font-semibold">Select performance</span>
 				<select
 				class="select select-bordered w-full"
+				value={selectedRecording?.path ?? ""}
 				onchange={(e) => {
 					const selected = recordings.find(r => `${r.path}` === e.currentTarget.value);
 					if (selected) onSelect(selected);
 				}}
-				disabled={recordings.length === 0}
 				>
+				<option value="" disabled selected={!selectedRecording}>Select a piece...</option>
 				{#each recordings as rec}
-					<option value="{rec.path}">{rec.label}</option>
+					<option value="{rec.path}" selected={selectedRecording?.path === rec.path}>{rec.label}</option>
 				{/each}
 				</select>
 			</label>

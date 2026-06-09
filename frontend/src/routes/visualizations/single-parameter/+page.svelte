@@ -53,6 +53,7 @@
     async function handlePieceSelect(piece: SongInfo) {
         selectedPiece = piece;
         tableRows = [];
+        displayedRows = [];  // reset here
         error = '';
 
         try {
@@ -60,10 +61,9 @@
             if (!res.ok) throw new Error('Could not fetch parsed MEI data');
 
             const data = await res.json();
-
             metadata = data[0]?.metadata ?? null;
             tableRows = data[1]?.data ?? [];
-
+            displayedRows = [...tableRows]; 
         } catch (e: any) {
             error = e.message;
             console.error(e);
@@ -167,14 +167,36 @@
     <main class="flex-1 flex flex-col overflow-hidden">
         <div class="flex-1 relative p-6 overflow-auto mb-12">
             {#if active === "visualization"}
+
+                <!-- INFORMATION -->
+                <div class="relative bg-base-200 max-w-[70vw] p-4 left-1/2 -translate-x-1/2 rounded-xl shadow-s grid grid-cols-2 gap-4">
+                    <div>
+                        <h3 class="card-title">How to read this visualization</h3>
+                        <p>This graph visualizes three different parameters of performance data. Each slab represents one marked beat.</p>
+                        <ol class="list-decimal pl-6">
+                            <li>The <u>tempo</u> of the beat determines the size of the slab's <b>angle</b>, i.e. a "thicker" slab denotes a longer/slower performed beat.</li>
+                            <li>The <u>dynamics</u> value of the beat decides the <b>length</b> of a slab; a longer slab is louder than a shorter slab.</li>
+                            <li>The <b>color</b> of a slab represents the detected <u>spectral centroid</u> of the beat. A lighter color denotes a higher value, i.e. a
+                                "brighter" perceived sound.</li>
+                        </ol>
+                    </div>
+                    <div>
+                        <h3 class="card-title">How to use this tool</h3>
+                        <p>If you find a different color scheme than the default <i>Viridis</i> scheme more helpful, you may choose among several options in the upper
+                            left corner.</p>
+                        <p>Clicking on a slab shows information about the according beat.</p>
+                        <p>You can select multiple beats by means of drag and drop.</p>
+                    </div>
+                </div>
+
                 <MeiCircularRibbon
                     bind:this = {chart}
                     bind:brushEnabled
                     bind:selectedColorDropdown
                     bind:displayedRows
-                    rows={tableRows}
                     metadata={metadata}
                 />
+
             {:else if active === "table"}
                 <MeiTable rows={tableRows} />
             {/if}

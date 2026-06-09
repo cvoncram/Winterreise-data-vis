@@ -5,7 +5,6 @@
 	import ScoreSelector from "$lib/components/partials/ScoreSelector.svelte";
 	import ParameterSelector from "$lib/components/partials/ParameterSelector.svelte";
 	import LineGraph from "$lib/components/containers/LineGraph.svelte";
-
     
     let allPerformances = $state<CyclePerformance[]>([]);
     let selectedPerformances = $state<CyclePerformance[]>([]);
@@ -17,7 +16,6 @@
     let graphPerformances = $state<PerformanceRow[][]>([]);
     let graphMetadata = $state<PerformanceMetadata[]>([]);
     let showGraph = $state(false);
-            
     
     async function selectPiece(piece: SongInfo) {
         selectedPiece = piece;
@@ -88,8 +86,8 @@
 
 </script>
 
-<div class="flex">
-    <div class="fixed top-0 left-0 h-full w-64 bg-base-200 p-4 flex flex-col justify-center items-center gap-4 z-10">
+<div class="flex h-auto overflow-hidden">
+    <aside class="w-64 shrink-0 bg-base-200 p-4 items-center flex flex-col justify-center gap-4">
         
         <div class="card bg-base-200 p-4 shadow-md justify-start">
             <ScoreSelector files={pieces} selectedFile={selectedPiece} onFileSelect={selectPiece} />
@@ -100,16 +98,18 @@
             {/if}
             <button class="btn btn-primary" onclick={generateGraph} type="submit">Generate Graph</button>
         </div>
-    </div>
+    </aside>
 
-    <div class="ml-64 mt-15 p-4">
-    {#if showGraph}
-        <LineGraph performances={graphPerformances} parameter={selectedParameter} metadata={graphMetadata} />
-    {:else}
-        <div class="flex items-center justify-center w-full h-[80vh] bg-base-200 rounded-lg">
-        <p class="text-base-content opacity-50">Select a piece, parameter and performances, then click Generate Graph</p>
+    <main class="flex-1 flex flex-col p-10 overflow-hidden">
+        <div style="background-color: rgba(254, 255, 223, .2);" class="border-2 border-[#668ba4] rounded-xl bg-base-200">
+            {#if showGraph}
+            <LineGraph performances={graphPerformances} parameter={selectedParameter} metadata={graphMetadata} />
+            {:else}
+            <div style="background-color: rgba(254, 255, 223, .2)" class="flex items-center justify-center w-full h-[80vh] rounded-lg">
+                <p class="text-base-content opacity-50">Select a piece, parameter and performances, then click Generate Graph</p>
+            </div>
+            {/if}
         </div>
-    {/if}
-    </div>
+    </main>
 
 </div>

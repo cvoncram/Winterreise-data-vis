@@ -13,12 +13,10 @@
         index: number;
     };
 
-    let { rows, metadata, brushEnabled=$bindable(false), selectedColorDropdown=$bindable("viridisScheme"), displayedRows = $bindable([]) }:
-        { rows: PerformanceRow[]; metadata: PerformanceMetadata | null; brushEnabled?: boolean; selectedColorDropdown?: string; displayedRows? : PerformanceRow[] } = $props();
+    let { displayedRows = $bindable([]), metadata, brushEnabled=$bindable(false), selectedColorDropdown=$bindable("viridisScheme") }:
+        { displayedRows? : PerformanceRow[]; metadata: PerformanceMetadata | null; brushEnabled?: boolean; selectedColorDropdown?: string } = $props();
 
     let svg: SVGSVGElement;
-    let container: HTMLDivElement;
-    let resizeObserver: ResizeObserver;
 
     let selectedRow = $state<PerformanceRow | null>(null);
     let selectedMeasures = $state<PerformanceRow[]>([]);
@@ -26,21 +24,6 @@
     let dragStartIndex: number | null = null;
     let width = $state(0);
     let height = $state(0);
-
-    let lastRowsRef = $state<PerformanceRow[]>([]);
-
-    $effect(() => {
-        if (rows !== lastRowsRef) {
-            lastRowsRef = rows;
-            displayedRows = [...rows];
-            clearSelection();
-        }
-    });
-
-    function updateSize() {
-        width = container.clientWidth;
-        height = container.clientHeight;
-    }
 
     function applyColorScheme(color: number) {
         if (selectedColorDropdown === "viridisScheme") return d3.interpolateViridis(color);
@@ -161,15 +144,19 @@
             });
     }
 
-    onMount(() => {
-        resizeObserver = new ResizeObserver(updateSize);
-        resizeObserver.observe(container);
-        updateSize();
+    function attachContainer(node: HTMLDivElement) {
+        const resizeObserver = new ResizeObserver(() => {
+            width = node.clientWidth;
+            height = node.clientHeight;
+        });
+        resizeObserver.observe(node);
+        width = node.clientWidth;
+        height = node.clientHeight;
 
         window.addEventListener("mouseup", () => isDraggingSelection = false);
 
         return () => resizeObserver.disconnect();
-    });
+    }
 
     $effect(() => {
         if (visualData.length && width > 0 && height > 0) {
@@ -180,7 +167,7 @@
 
 <!-- SVG CONTAINER -->
 
-<div bind:this={container} class="relative w-full h-[80vh]">
+<div {@attach attachContainer} class="relative w-full h-[80vh]">
 
     <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
     <svg 
@@ -228,27 +215,6 @@
             </button>
         </div>
     {/if}
-</div>
-
-<!-- INFORMATION -->
-<div class="relative bg-base-200 max-w-[70vw] p-4 left-1/2 -translate-x-1/2 rounded-xl shadow-xl grid grid-cols-2 gap-4">
-    <div>
-        <h3 class="card-title">How to read this visualization</h3>
-        <p>This graph visualizes three different parameters of performance data. Each slab represents one marked beat.</p>
-        <ol class="list-decimal pl-6">
-            <li>The <u>tempo</u> of the beat determines the size of the slab's <b>angle</b>, i.e. a "thicker" slab denotes a longer/slower performed beat.</li>
-            <li>The <u>dynamics</u> value of the beat decides the <b>length</b> of a slab; a longer slab is louder than a shorter slab.</li>
-            <li>The <b>color</b> of a slab represents the detected <u>spectral centroid</u> of the beat. A lighter color denotes a higher value, i.e. a
-                "brighter" perceived sound.</li>
-        </ol>
-    </div>
-    <div>
-        <h3 class="card-title">How to use this tool</h3>
-        <p>If you find a different color scheme than the default <i>Viridis</i> scheme more helpful, you may choose among several options in the upper
-            left corner.</p>
-        <p>Clicking on a slab shows information about the according beat.</p>
-        <p>You can select multiple beats by means of drag and drop.</p>
-    </div>
 </div>
 
 <style>

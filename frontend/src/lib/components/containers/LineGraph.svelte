@@ -2,16 +2,11 @@
 	import type { PerformanceRow, PerformanceMetadata } from "$lib/types";
     import * as d3 from "d3";
 
-    let {performances, parameter, metadata}: {performances: PerformanceRow[][], parameter: string; metadata: PerformanceMetadata[]} = $props();
+    let {performances, parameter, metadata}: {
+        performances: PerformanceRow[][], parameter: string; metadata: PerformanceMetadata[]
+    } = $props();
+    
     let colors: string[] = $state(["red", "green", "yellow", "blue", "purple", "orange"]);
-    let container: HTMLDivElement;
-
-    $effect(() => {
-        if (performances.length === 0) return;
-        container.innerHTML = '';
-        const node = createLineGraph(performances, parameter, colors);
-        if (node) container.appendChild(node);
-    });
 
     // only temporary, until the backend returns dyn values
     function convertDynamics(data: string[], index: number) {
@@ -99,8 +94,17 @@
         return svg.node();
     }  
 
+    function attachGraph(node: HTMLDivElement) {
+        $effect(() => {
+            if (performances.length === 0) return;
+            node.innerHTML = '';
+            const svg = createLineGraph(performances, parameter, colors);
+            if (svg) node.appendChild(svg);
+        });
+
+        return () => { node.innerHTML = ''; };
+    }
+    
 </script>
 
-<div bind:this={container} class="relative p-5 w-full">
-
-</div>
+<div {@attach attachGraph} class="relative p-5 w-full"></div>

@@ -1,12 +1,11 @@
 <script lang="ts">
     import { onMount } from 'svelte';
     import PageControls from '../partials/PageControls.svelte';
-    import SliderControl from '../partials/SliderControl.svelte';
     
-    let {src}: {src: string} = $props();
+    let {src, scale = $bindable(40), spacingPercent = $bindable(25), pageWidth = $bindable(1400), pageHeight = $bindable(600)}:
+        {src: string; scale: number; spacingPercent: number; pageWidth: number; pageHeight: number } = $props();
 
     let meiDocument: Document;
-    let meiContainer: HTMLDivElement;
     
     let svg = $state('');
     let error = $state('');
@@ -18,11 +17,6 @@
     let meiIdMap = new Map<string, Element>();
     
     let viewportHeight = $state(0);
-    
-    let scale = $state(40);
-    let spacingPercent = $state(25);
-    let pageWidth = $state(1400);
-    let pageHeight = $state(600);
     
     const baseLayoutOptions = {
         spacingSystem: 0,
@@ -102,7 +96,7 @@
 
     }
 
-    function doLayout() {
+    export function doLayout() {
         vrvToolkit.setOptions({
             ...baseLayoutOptions,
             scale,
@@ -268,8 +262,6 @@
             error = e.message;
             console.error(e);
         }
-
-        meiContainer?.addEventListener("click", handleClick);
         
     });
     
@@ -279,50 +271,20 @@
             doLayout();
         }
     });
+
+    function attachMeiContainer(node: HTMLDivElement) {
+        node.addEventListener("click", handleClick);
+        return () => node.removeEventListener("click", handleClick);
+    }
     
 </script>
 
 <!-- MeiViewer.svelte -->
 <div class="viewer-container" style="--pageWidth: {pageWidth}px; --viewport-height: {viewportHeight}px">
-    
-    <!-- Controls with left-aligned label -->
-    <div class="controls-wrapper">
-        <div class="controls-header-and-sliders">
-            <h2 class="tools-header">Display options</h2>
-            <div class="controls">
-                <SliderControl
-                label="Scale (percent)"
-                min={10}
-                max={80}
-                value={scale}
-                onChange={(v) => { scale = v; doLayout(); }}
-                />
-                <SliderControl
-                label="Note spacing (percent)"
-                min={1}
-                max={100}
-                value={spacingPercent}
-                onChange={(v) => { spacingPercent = v; doLayout(); }}
-                />
-                <SliderControl
-                label="Page width (pixels)"
-                min={400}
-                max={1600}
-                value={pageWidth}
-                onChange={(v) => { pageWidth = v; doLayout(); }}
-                />
-                <SliderControl
-                label="Maximum page height (pixels)"
-                min={300}
-                max={4000}
-                value={pageHeight}
-                onChange={(v) => { pageHeight = v; doLayout(); }}
-                />
-            </div>
-        </div>
-    </div>
-    
-    <div class="mei-svg" bind:this={meiContainer}>
+    {#if error}
+        <p class="text-error">{error}</p>
+    {/if}
+    <div class="mei-svg" {@attach attachMeiContainer}>
         {@html svg}
     </div>
 
@@ -361,7 +323,8 @@
         width: var(--pageWidth);
         min-width: 1000px;
         margin: 0 auto;
-        border: 2px solid black;
+        border: 2px solid var(--color-primary);
+        border-radius: 8px;
     }
     
     .mei-svg {
@@ -377,8 +340,8 @@
     .mei-svg :global(svg) {
         transform-origin: top center;
         padding: 1rem;
-        background-color: whitesmoke;
         border-radius: 0.5rem;
+        background-color: rgba(254, 255, 223, .5);
     }
     
     .mei-svg :global(g.note path),
@@ -421,33 +384,6 @@
 
     .modal-box {
         line-height: 3vh;
-    }
-    
-    
-    /* Controls wrapper */
-    .controls-wrapper {
-        width: 100%;
-        display: flex;
-        justify-content: center;
-    }
-    
-    /* Row containing label and sliders */
-    .controls-header-and-sliders {
-        display: flex;
-        align-items: center;
-        gap: 1rem;
-    }
-    
-    /* Label on the left, vertical alignment center */
-    .tools-header {
-        white-space: nowrap;
-    }
-    
-    /* Sliders container */
-    .controls {
-        display: grid;
-        grid-template-columns: repeat(4, 1fr);
-        gap: 2%;
     }
     
     /* Page controls */

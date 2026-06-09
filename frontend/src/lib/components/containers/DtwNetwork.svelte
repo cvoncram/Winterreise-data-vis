@@ -1,105 +1,121 @@
 <script lang=ts>
     import * as d3 from "d3";
-    import {onMount} from "svelte";
 
-    let {nodes, links, linkWidth = $bindable(), linkLength = $bindable()}: {
-        nodes: { id: number }[];
-        links: {
-            source: number;
-            target: number;
-            distance: number;
-        }[];
+    let {nodes, links, linkWidth = $bindable(), nodeSize = $bindable()}: {
+        nodes: { id: number; label?: string; }[];
+        links: { source: number; target: number; distance: number; }[];
         linkWidth: number;
-        linkLength: number;
+        nodeSize: number;
     } = $props();
-    
-    let linkSelection = $state<d3.Selection< SVGLineElement, typeof links[number], SVGGElement, unknown >>();
-    let simulation = $state<d3.Simulation<GraphNode, GraphLink>>();
 
-    let container: HTMLDivElement;
-    
-    
+    const maxDistance = $derived(Math.max(...links.map(d => d.distance)));
+
+    let popup: HTMLDivElement;
+
     const width = 1600;
     const height = 680;
-    
+
     interface GraphNode extends d3.SimulationNodeDatum {
         id: number;
+        label?: string;
     }
-    
+
     interface GraphLink extends d3.SimulationLinkDatum<GraphNode> {
         distance: number;
     }
 
-    $effect(() => {
-        if (linkSelection) {
-            linkSelection.attr(
-            "stroke-width",
-            d => linkWidth / d.distance
-            );
-        }
-    });
+    function displayNodeInfo(node: GraphNode) {
+        return node.label ?? "";
+    }
 
-    $effect(() => {
-        if (!simulation) return;
-        simulation.force(
-        "link",
-        d3.forceLink<GraphNode, GraphLink>(links)
-        .distance(d => d.distance * linkLength)
-        );
-        simulation.alpha(1).restart();
-    });
+    function displayLinkInfo(link: GraphLink) {
+        return `${(link.source as GraphNode).label}, ${(link.target as GraphNode).label}, relative similarity: ${(100 - (link.distance / maxDistance * 100)).toFixed(2)}%`;
+    }
 
-    onMount(() => {
-        const node = createDtwNetwork(linkWidth, linkLength);
-        if (node) container.appendChild(node);
-    });
+    function showPopup(event: MouseEvent, content: string) {
+        popup.innerHTML = content;
+        popup.classList.remove("hidden");
+        popup.style.left = `${event.clientX + 12}px`;
+        popup.style.top = `${event.clientY + 12}px`;
+    }
 
-    function createDtwNetwork(linkWidth: number, linkLength: number){
-        simulation = d3.forceSimulation<GraphNode>(nodes)
-            .force("link", d3.forceLink<GraphNode, GraphLink>(links).distance(d => d.distance * linkLength))
+    function hidePopup() {
+        popup.classList.add("hidden");
+    }
+
+    function attachGraph(container: HTMLDivElement) {
+        const simulation = d3.forceSimulation<GraphNode>(nodes)
+            .force("link", d3.forceLink<GraphNode, GraphLink>(links).distance(d => (d.distance * 8) / maxDistance * 100))
             .force("charge", d3.forceManyBody())
             .force("x", d3.forceX())
             .force("y", d3.forceY());
-            
-            const svg = d3.create("svg")
+
+        const svg = d3.create("svg")
             .attr("width", width)
             .attr("height", height)
             .attr("viewBox", [-width / 2, -height / 2, width, height])
             .attr("style", "max-width: 100%; height: auto;");
-            
-            linkSelection = svg.append("g")
+
+        svg.on("click", () => hidePopup());
+
+        svg.call(d3.zoom<SVGSVGElement, undefined>()
+            .extent([[0, 0], [width, height]])
+            .scaleExtent([1, 8])
+            .on("zoom", (event: d3.D3ZoomEvent<SVGSVGElement, undefined>) => {
+                svg.attr("transform", event.transform.toString());
+                hidePopup();
+            }));
+
+        const linkSelection = svg.append("g")
             .attr("stroke", "#668ba4")
             .attr("stroke-opacity", 0.8)
-            .selectAll<SVGLineElement, typeof links[number]>("line")
-            .data(links)
+            .selectAll<SVGLineElement, GraphLink>("line")
+            .data(links as GraphLink[])
             .join("line")
-            .attr("stroke-width", d => linkWidth / d.distance);
-            
-            const node = svg.append("g")
-            .attr("stroke", "#fff")
+            .attr("stroke-width", d => linkWidth / d.distance)
+            .on("click", (event, d) => {
+                event.stopPropagation();
+                showPopup(event, displayLinkInfo(d));
+            });
+
+        const nodeSelection = svg.append("g")
+            .attr("stroke", "yellow")
+            .attr("fill", "green")
             .attr("stroke-width", 1.5)
-            .selectAll("circle")
-            .data(nodes)
+            .selectAll<SVGCircleElement, GraphNode>("circle")
+            .data(nodes as GraphNode[])
             .join("circle")
-            .attr("r", 5);
-            
-            node.append("title")
-            .text(d => d.id);
-            simulation.on("tick", () => {
-                if (linkSelection) linkSelection
+            .attr("r", nodeSize)
+            .on("click", (event, d) => {
+                event.stopPropagation();
+                showPopup(event, displayNodeInfo(d));
+            });
+
+        simulation.on("tick", () => {
+            linkSelection
                 .attr("x1", d => (d.source as any).x)
                 .attr("y1", d => (d.source as any).y)
                 .attr("x2", d => (d.target as any).x)
                 .attr("y2", d => (d.target as any).y);
-                node
+            nodeSelection
                 .attr("cx", d => (d as any).x)
                 .attr("cy", d => (d as any).y);
-            });
-            
-            return svg.node();
-            
-        }
-        
-    </script>
+        });
 
-    <div bind:this={container} class="w-full h-full"></div>
+        const svgNode = svg.node()!;
+        container.appendChild(svgNode);
+
+        $effect(() => {
+            linkSelection.attr("stroke-width", d => linkWidth / d.distance);
+            nodeSelection.attr("r", nodeSize);
+        });
+
+        return () => {
+            simulation.stop();
+            container.innerHTML = '';
+        };
+    }
+</script>
+
+<div {@attach attachGraph} class="w-full h-full overflow-auto"></div>
+<div bind:this={popup} class="fixed bg-base-200 shadow-md rounded p-2 text-sm pointer-events-none hidden"></div>

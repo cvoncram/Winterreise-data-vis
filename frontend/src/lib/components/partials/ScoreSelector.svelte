@@ -32,14 +32,6 @@
 	"Der Leiermann"
 	];
 	
-	// Auto-select first file when files arrive
-	$effect(()=> {
-		if (files.length > 0 && !selectedFile) {
-			selectedFile = files[0];
-			onFileSelect(selectedFile);
-		}
-	});
-	
 	// Map backend files to song titles with track numbers
 	const filesWithTitles = $derived(
 		files.map((file, idx) => ({
@@ -59,9 +51,8 @@
 				onchange={(e) => {
 					const selected = filesWithTitles.find(f => f.path === e.currentTarget.value);
 					if (selected) onFileSelect(selected);
-				}}
-				disabled={filesWithTitles.length === 0}
-				>
+				}}>
+				<option value="" disabled selected={!selectedFile}>Select a piece...</option>
 				{#each filesWithTitles as file}
 					<option value={file.path} selected={selectedFile?.path === file.path}>{file.label}</option>
 				{/each}
