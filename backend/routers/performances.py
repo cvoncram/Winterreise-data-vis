@@ -72,16 +72,22 @@ def list_performances():
 
     enriched = []
     for folder_name in folders:
-        # Try to find the matching metadata entry
-        # Matching by folder name: e.g., 1948_Billing or 1950_Mueller_Berlin
-        perf_meta = next(
-            (
-                p for p in performances_json
-                if folder_name.startswith(str(int(p["Recording Year"]))) and p["Pianist"].split(",")[0] in folder_name
-            ),
-            {}
-        )
-        # Construct friendly label
+    # Try to find the matching metadata entry, disambiguating by city if present
+        candidates = [
+            p for p in performances_json
+            if folder_name.startswith(str(int(p["Recording Year"]))) and p["Pianist"].split(",")[0] in folder_name
+        ]
+
+        perf_meta = {}
+        if len(candidates) == 1:
+            perf_meta = candidates[0]
+        elif len(candidates) > 1:
+            # Try to disambiguate using the city name in the folder
+            perf_meta = next(
+                (p for p in candidates if p.get("City", "").replace(" ", "") in folder_name),
+                candidates[0]  # fallback to first if no city match
+            )
+
         year = int(perf_meta.get("Recording Year", 0)) if perf_meta else None
         pianist = perf_meta.get("Pianist", "").split(",")[0] if perf_meta else folder_name.split("_")[1]
         city = perf_meta.get("City", "") if perf_meta and "City" in perf_meta else ""
