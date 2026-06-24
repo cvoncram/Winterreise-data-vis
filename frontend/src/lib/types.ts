@@ -28,7 +28,7 @@ export type Score = {
 };
 
 export type SongPerformance = {
-    song: SongInfo;
+    song: SongInfo | null;
     rows: PerformanceRow[];
 };
 
