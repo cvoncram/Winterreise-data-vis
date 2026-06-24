@@ -1,5 +1,5 @@
 export const load = () => {
 	return {
-		title: "Analysis"
+		title: "Line Graph"
 	};
 };

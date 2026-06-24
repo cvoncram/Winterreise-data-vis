@@ -10,7 +10,7 @@
     let selectedPerformances = $state<CyclePerformance[]>([]);
     let pieces = $state<SongInfo[]>([]);
     let selectedPiece = $state<SongInfo | null>(null);
-    let selectedParameter = $state<Parameter>("dynamics");
+    let selectedParameter = $state<Parameter>("tempo");
     let error: string = $state("");
 
     let graphPerformances = $state<PerformanceRow[][]>([]);
