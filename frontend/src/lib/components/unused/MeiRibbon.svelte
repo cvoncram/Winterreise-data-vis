@@ -1,7 +1,7 @@
 <script lang="ts">
     import { onMount } from "svelte";
     import * as d3 from "d3";
-    import type { PerformanceRow } from "$lib/components/MeiTable.svelte";
+    import type { PerformanceRow } from "$lib/types";
 
     export let rows: PerformanceRow[] = [];
 
@@ -82,7 +82,6 @@
         function render() {
             g.selectAll("*").remove();
 
-            // ---- GRADIENT FILL (important change) ----
             const gradient = svg.append("defs")
                 .append("linearGradient")
                 .attr("id", "timbre-fill")

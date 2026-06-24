@@ -19,7 +19,7 @@
 					if (selected) onSelect(selected);
 				}}
 				>
-				<option value="" disabled selected={!selectedRecording}>Select a piece...</option>
+				<option value="" disabled selected={!selectedRecording}>Select a performance...</option>
 				{#each recordings as rec}
 					<option value="{rec.path}" selected={selectedRecording?.path === rec.path}>{rec.label}</option>
 				{/each}

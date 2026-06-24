@@ -1,6 +1,8 @@
 <script lang="ts">
-    import { onMount, tick } from "svelte";
+    import { tick } from "svelte";
     import * as d3 from "d3";
+    import { goto } from "$app/navigation";
+    import { selectedMeasuresStore, selectedPieceStore, startMeasure, startBeat, endMeasure, endBeat } from "$lib/stores/selection";
 
     import type {
         PerformanceRow,
@@ -137,6 +139,7 @@
 
                 selectedMeasures = [...displayedRows.slice(min, max + 1)];
                 tick().then(updateChart);
+            
             })
             .on("pointerup", () => {
                 isDraggingSelection = false;
@@ -210,6 +213,21 @@
                     clearSelection();
                 }}
             >Visualize only these beats</button>
+            <button                 
+                class="btn btn-block btn-secondary mt-3"
+                onclick={() => {
+                    selectedMeasuresStore.set(selectedMeasures);
+                    const[startFirst, startSecond] = selectedMeasures[0].measure.split(".").map(Number);
+                    startMeasure.set(startFirst);
+                    startBeat.set(startSecond);
+                    const[endFirst, endSecond] = selectedMeasures[selectedMeasures.length-1].measure.split(".").map(Number);
+                    endMeasure.set(endFirst);
+                    endBeat.set(endSecond);
+                    if (metadata) {
+                        selectedPieceStore.set(metadata)
+                    };
+                    goto("multi-parameter/multi-performance")
+                }}>Compare with other performances</button>
 
             <button class="btn btn-block btn-warning" onclick={clearSelection}>Exit selection
             </button>

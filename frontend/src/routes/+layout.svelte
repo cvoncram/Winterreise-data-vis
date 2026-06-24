@@ -44,7 +44,6 @@
     </div>
     <div class="nav-items">
         <a class="btn btn-primary" href="/documentation">Documentation</a>
-        <a class="btn btn-primary" href="/analysis">Analysis</a>
         <a class="btn btn-primary" href="/scores">Scores</a>
         <a class="btn btn-primary" href="/visualizations">Visualizations</a>
     </div>

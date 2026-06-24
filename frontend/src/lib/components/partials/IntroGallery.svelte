@@ -18,7 +18,7 @@
         <!-- content -->
         <div class="min-w-85 min-h-60 max-h-100 card">
             <div class="card-body">
-                <h2 class:invisible={!hovered[i]} class="absolute top-[50%] left-[50%] text-6xl text-black translate-[-50%]">{title}</h2>
+                <h2 class:invisible={!hovered[i]} class="absolute top-[50%] left-[50%] text-xl text-black z-10 font-bold translate-[-50%]">{title}</h2>
                 <img class:opacity-50={hovered[i]} class="rounded-xl h-full object-cover w-full" src={images[i]} alt="Screenshot" />
             </div>
         </div>
