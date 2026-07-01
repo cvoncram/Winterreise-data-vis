@@ -32,7 +32,5 @@ def calculate_dtw(
             "metadata": parse_mei_metadata(xml)
         })
 
-    
-    
     result = calculate_dtw_matrix(parameter, piece, performances)
     return result

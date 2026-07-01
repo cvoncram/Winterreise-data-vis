@@ -1,10 +1,7 @@
-from typing import List, Optional, Dict, Tuple
+from typing import List, Optional, Dict
 import xml.etree.ElementTree as ET
-
-
-MEI_NS = {"mei": "http://www.music-encoding.org/ns/mei",
-          "xml": "http://www.w3.org/XML/1998/namespace"
-          }
+from config import MEI_NS
+from fastapi import Response
 
 
 def parse_mei_to_rows(xml: str) -> List[Dict[str, Optional[float]]]:
@@ -39,8 +36,11 @@ def parse_mei_to_rows(xml: str) -> List[Dict[str, Optional[float]]]:
                         pass
 
             dyn_val = None
+            intpr_dyn = None
             if i < len(dyns):
                 dyn_val = dyns[i].attrib.get("n")
+                intpr_dyn = dyns[i].attrib.get("label")
+
 
             timbre_val = None
             if i < len(timbres):
@@ -55,6 +55,7 @@ def parse_mei_to_rows(xml: str) -> List[Dict[str, Optional[float]]]:
                 "measure": f"{measure_num}.{i + 1}",
                 "tempo": tempo_val,
                 "dynamics": dyn_val,
+                "interpreted dynamics": intpr_dyn,
                 "timbre": timbre_val
             })
 
@@ -156,3 +157,24 @@ def parse_mei_metadata(xml: str) -> dict[str, float | int]:
         "mfValue": mfDBCalibration,
         "dynamicStep": dynamicStep
     }
+
+def return_relevant_measures(xml: str, start: int, end: int):
+    root = ET.fromstring(xml)
+
+    # Remove every measure outside the requested range
+    for section in root.findall(".//mei:section", MEI_NS):
+        for measure in list(section.findall("mei:measure", MEI_NS)):
+            n = measure.get("n")
+            if not n:
+                continue
+
+            try:
+                numbers = [int(x.strip()) for x in n.split(",")]
+            except ValueError:
+                continue
+
+            if not any(start <= num <= end for num in numbers):
+                section.remove(measure)
+
+    ET.register_namespace("", MEI_NS["mei"])
+    return ET.tostring(root, encoding="unicode")

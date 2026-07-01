@@ -1,9 +1,9 @@
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Query, Response
 from github_auth import get_installation_token
-from services.meiParser import parse_mei_to_rows, parse_mei_metadata, parse_measures_to_rows
+from services.meiParser import parse_mei_to_rows, parse_mei_metadata, parse_measures_to_rows, return_relevant_measures
 import requests
 import base64
-from config import OWNER, REPO, BRANCH
+from config import OWNER, REPO, BRANCH, TITLES
 
 router = APIRouter()
 
@@ -18,7 +18,26 @@ def get_file(path: str):
     r.raise_for_status()
 
     content = base64.b64decode(r.json()["content"]).decode()
-    return {"content": content}
+    return Response(content=content, media_type="application/xml")
+
+@router.get("/db/file-measures")
+def get_file_measures(piece: int, start: int, end: int):
+
+    path = TITLES[piece-1]
+
+    token = get_installation_token()
+    url = f"https://api.github.com/repos/{OWNER}/{REPO}/contents/{path}?ref={BRANCH}"
+
+    headers = {"Authorization": f"token {token}"}
+
+    r = requests.get(url, headers=headers)
+    r.raise_for_status()
+
+    content = base64.b64decode(r.json()["content"]).decode()
+
+    score = return_relevant_measures(content, start, end)
+
+    return Response(content=score, media_type="application/xml")
 
 @router.get("/db/parsed-file")
 def parse_mei(path: str):

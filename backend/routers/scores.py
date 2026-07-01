@@ -91,3 +91,5 @@ def get_scores_tree():
             node.setdefault(parts[-1], {})
 
     return sort_tree(root)
+
+
