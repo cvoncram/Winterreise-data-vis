@@ -5,9 +5,18 @@
     import MultiplePerformancesSelector from '$lib/components/partials/MultiplePerformancesSelector.svelte';
     import type { PerformanceRow, PerformanceMetadata, CyclePerformance } from '$lib/types';
     import { selectedMeasuresStore, selectedPieceStore, selectedPiecePath, startMeasure, startBeat, endMeasure, endBeat } from "$lib/stores/selection";
+	import MeiViewer from "$lib/components/containers/MeiViewer.svelte";
+
+    const nbInOrder = (() => {
+        const piecePathSplit = get(selectedPiecePath).split("_");
+        return Number(piecePathSplit[piecePathSplit.length - 3]) ?? 0
+    });
 
     let error = $state('');
-    let active = $state("visualization");
+    let showScore = $state(false);
+    let score = $state("");
+    let selectSameMeasure = $state(false);
+    let selectedRowTarget = $state<string | null>(null);
 
     let allPerformances = $state<CyclePerformance[]>([]);
     let selectedPerformances = $state<CyclePerformance[]>([]);
@@ -33,10 +42,26 @@
             }
         };
     }
+    
+    async function displayScore() {
+        try {
+            const scoreRes = await fetch(`/db/file-measures?piece=${nbInOrder()}&start=${get(startMeasure)}&end=${get(endMeasure)}`)
+            score = await scoreRes.text();
+
+        } catch (e:any) {
+            error = e.message;
+            console.error(e);
+        }
+    }
+
+    function selectMeasure(){
+        if (selectSameMeasure) {
+
+        }
+    }
 
     onMount(async () => {
-        applySelection();
-
+        console.log($selectedPiecePath);
         try {
             const perfRes = await fetch('/db/performances');
             if (!perfRes.ok) throw new Error('Could not fetch file list');
@@ -51,13 +76,14 @@
             error = e.message;
             console.error(e);
         }
+        applySelection();
     });
 
     async function fetchPerformanceData(paths: string[]) {
         error = '';
 
         try {
-            const piece = 1; // adjust if this should come from a store too
+            const piece = nbInOrder();
             const sM = get(startMeasure);
             const sB = get(startBeat);
             const eM = get(endMeasure);
@@ -98,6 +124,10 @@
                 return;
             }
 
+            const existingMap = new Map(
+                selectedPerformances.map(p => [p.path, p])
+            );
+
             const results = await fetchPerformanceData(newPaths);
 
             const fetchedMap = new Map(results.map(r => [r.performance, r]));
@@ -105,13 +135,15 @@
             selectedPerformances = newSelection.map(p => {
                 if (fetchedMap.has(p.path)) {
                     const r = fetchedMap.get(p.path)!;
+
                     return {
                         ...p,
                         metadata: r.metadata,
                         songPerformances: [{ song: null, rows: r.data }]
                     };
                 }
-                return p;
+
+                return existingMap.get(p.path) ?? p;
             });
 
         } catch (e) {
@@ -141,6 +173,7 @@
                 </select>
             </label>
         </div>
+
         <div class="bg-base-100 w-full p-4 rounded-lg shadow flex flex-col overflow-visible">
             <MultiplePerformancesSelector
                 performances={allPerformances}
@@ -149,19 +182,59 @@
                 onSelectionChange={handlePerformancesChange}
             />
         </div>
+
+        <button class="btn btn-primary"
+        onclick={() => {
+            showScore = !showScore;
+            displayScore();
+        }}>Display score measures</button>
+
+        <div class="flex gap-6 w-full">
+            <div class="bg-base-100 w-full p-4 rounded-lg shadow flex flex-col items-start overflow-visible">
+                <h2 class="card-title justify-center mb-2 ">Display options</h2>
+                <button 
+                    class={`btn btn-block ${
+                        selectSameMeasure === true
+                            ? "btn-primary"
+                            : "bg-base-300"
+                    }`}
+                    onclick={() => (selectSameMeasure = true)}
+                >Same measure in each performance</button>
+                <button
+                    class={`btn btn-block ${
+                        selectSameMeasure === false
+                            ? "btn-primary"
+                            : "bg-base-300"
+                    }`}
+                    onclick={() => (selectSameMeasure = false)}
+                >Each performance individually</button>
+            </div>
+        </div>
     </aside>
 
-    <main class="flex-1 flex flex-col overflow-hidden">
-        <div class="flex-1 relative p-6 overflow-auto mb-12">
-            {#if active === "visualization"}
-                {#each selectedPerformances as performance}
-                    <div class="relative w-full">{performance.label}</div>
-                    <MeiLinearRibbon
-                        bind:selectedColorDropdown
-                        displayedRows={performance.songPerformances[0]?.rows ?? []}
-                        metadata={performance.metadata}
-                    />
-                {/each}
+    <main class="flex-1 flex gap-4 p-6 overflow-hidden">
+        <div class="w-[50%] overflow-auto">
+            {#each selectedPerformances as performance (performance.path)}
+                <div class="relative w-full">{performance.label}</div>
+                <MeiLinearRibbon
+                    bind:selectedColorDropdown
+                    displayedRows={performance.songPerformances[0]?.rows ?? []}
+                    metadata={performance.metadata}
+                    selectedRowAll={selectSameMeasure}
+                    bind:selectedRowTarget
+                />
+            {/each}
+        </div>
+
+        <div class="w-[50%] overflow-auto">
+            {#if showScore}
+                <MeiViewer
+                    pageHeight={500}
+                    pageWidth={700}
+                    scale={40}
+                    spacingPercent={20}
+                    src={score}
+                />
             {/if}
         </div>
     </main>

@@ -321,7 +321,7 @@
         gap: 1.5rem;
         padding: 1rem;
         width: var(--pageWidth);
-        min-width: 1000px;
+        min-width: 400px;
         margin: 0 auto;
         border: 2px solid var(--color-primary);
         border-radius: 8px;

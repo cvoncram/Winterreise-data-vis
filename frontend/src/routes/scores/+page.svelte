@@ -29,8 +29,8 @@
             
             if (!res.ok) throw new Error('Could not fetch MEI file');
             
-            const data = await res.json();
-            meiContent = data.content; 
+            const data = await res.text();
+            meiContent = data; 
             
         } catch (e: any) {
             error = e.message;
@@ -81,14 +81,12 @@
                     oninput={(e) => {scaleLabel = Number(e.currentTarget.value)}}/>
                     <span class="font-bold">{scaleLabel}</span>
                 </label>
-
                 <label>Spacing (percent):
                     <input type="range" min="1" max="100" value={spacingPercent} class="range range-s range-primary"
                     onchange={(e) => { spacingPercent = Number(e.currentTarget.value); meiViewer?.doLayout();}}
                     oninput={(e) => {spacingPercentLabel = Number(e.currentTarget.value)}}/>
                     <span class="font-bold">{spacingPercentLabel}</span>
                 </label>
-
                 <label>Page width (pixels):
                     <input type="range" min="400" max="1600" value={pageWidth} class="range range-s range-primary"
                     onchange={(e) => { pageWidth = Number(e.currentTarget.value); meiViewer?.doLayout();}}

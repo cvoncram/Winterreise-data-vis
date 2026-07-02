@@ -2,16 +2,13 @@
     import * as d3 from "d3";
     import type { PerformanceRow, PerformanceMetadata } from "$lib/types";
 
-    let { displayedRows = $bindable([]), metadata, selectedColorDropdown=$bindable("viridisScheme") }:
-        { displayedRows? : PerformanceRow[]; metadata: PerformanceMetadata | null; selectedColorDropdown?: string } = $props();
+    let { displayedRows = $bindable([]), metadata, selectedColorDropdown = $bindable("viridisScheme"), selectedRowAll = $bindable(false), selectedRowTarget = $bindable(null) }:
+        { displayedRows? : PerformanceRow[]; metadata: PerformanceMetadata | null; selectedColorDropdown?: string; selectedRowAll: boolean; selectedRowTarget: string | null } = $props();
 
     let selectedRow = $state<PerformanceRow | null>(null);
 
-    let popupX = $state(0);
-    let popupY = $state(0);
-
-    const width = 1600;
-    const height = 350;
+    const width = 1000;
+    const height = 200;
     const marginTop = 20;
     const marginRight = 10;
     const marginBottom = 30;
@@ -33,7 +30,10 @@
         const map: Record<string, number> = { ppp:12, pp:24, p:36, mp:48, mf:60, f:72, ff:84, fff:96 };
 
         return data.map(r => {
-            if (!r.dynamics) return 0;
+            const numeric = parseFloat(r.dynamics);
+            if (!isNaN(numeric) && /^-?\d+(\.\d+)?$/.test(r.dynamics.trim())) {
+                return 0.3 + (((Math.abs(numeric) - Math.abs(metadata.mfValue)) / (-metadata.dynamicStep)) * 0.06);
+            }
             const m = r.dynamics.match(/^([a-z]+)([+-]\d+)?$/i);
             const base = map[m?.[1] ?? ""] ?? 0;
             const off = m?.[2] ? Number(m[2]) : 0;
@@ -96,6 +96,7 @@
                 .attr("style", "max-width: 100%; height: auto;")
                 .on("click", () => {
                     selectedRow = null;
+                    selectedRowTarget = null;
                 });
 
             svg.append("g")
@@ -110,12 +111,14 @@
                 .attr("rx", 4)
                 .on("click", (event: MouseEvent, d) => {
                     event.stopPropagation();
-                    selectedRow = displayedRows[d.index];
-                    popupX = event.clientX;
-                    popupY = event.clientY;
-                    console.log(d.index, "selectedRow set to:", selectedRow, "at", popupX, popupY);
+                    if (selectedRowAll) {
+                        selectedRowTarget = displayedRows[d.index].measure;
+                    } else {
+                        selectedRow = displayedRows[d.index];
+                    };
+
                 });
-            
+
             svg.append("g")
                 .attr("class", "x-axis")
                 .attr("transform", `translate(0,${height - marginBottom})`);
@@ -123,22 +126,30 @@
             container.appendChild(svg.node()!);
         });
     }
+
+    $effect(() => {
+        if (selectedRowAll) {
+            selectedRow = selectedRowTarget
+                ? (displayedRows.find(r => r.measure === selectedRowTarget) ?? null)
+                : null;
+        }
+    });
+
+
+
 </script>
 
-<div {@attach attachGraph} class="relative w-full"></div>
-{#if selectedRow}
-    <div
-        class="fixed bg-base-200 p-2 rounded-xl shadow-xl z-50"
-        style="left: {popupX + 12}px; top: {popupY + 12}px;"
-    >
-        <div>
-            <h3 class="card-title">Measure {selectedRow.measure}</h3>
-            <p>Tempo (bpm): {selectedRow.tempo}<br>Dynamics: {selectedRow.dynamics}<br>Spectral centroid (Hz): {selectedRow.timbre}
-            </p>
-        </div>
+<div class="flex gap-2 overflow-hidden">
+    <div {@attach attachGraph} class="relative w-[75%]"></div>
+    {#if selectedRow}
+    <div class="relative w-[25%]">
+        <div><b>Selected measure:</b> {selectedRow?.measure}</div>
+        <div><b>Tempo:</b> {selectedRow?.tempo} bpm</div>
+        <div><b>Dynamics:</b> {selectedRow?.dynamics}</div>
+        <div><b>Spectral centroid:</b> {selectedRow?.timbre} Hz</div>
     </div>
-{/if}
-
+    {/if}
+</div>
 
 <style>
     :global(g rect:hover) {

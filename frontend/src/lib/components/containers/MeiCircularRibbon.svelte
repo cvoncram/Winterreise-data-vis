@@ -43,7 +43,10 @@
         const map: Record<string, number> = { ppp:12, pp:24, p:36, mp:48, mf:60, f:72, ff:84, fff:96 };
 
         return data.map(r => {
-            if (!r.dynamics) return 0;
+            const numeric = parseFloat(r.dynamics);
+            if (!isNaN(numeric) && /^-?\d+(\.\d+)?$/.test(r.dynamics.trim())) {
+                return 0.3 + (((Math.abs(numeric) - Math.abs(metadata.mfValue)) / (-metadata.dynamicStep)) * 0.06);
+            }
             const m = r.dynamics.match(/^([a-z]+)([+-]\d+)?$/i);
             const base = map[m?.[1] ?? ""] ?? 0;
             const off = m?.[2] ? Number(m[2]) : 0;

@@ -16,11 +16,16 @@
     let checked = $state<boolean[]>([]);
 
     function initChecked() {
-        checked = performances.map(p => p.path === lockedPath);
+        const selectedPaths = new Set(
+            selectedPerformances.map(p => p.path)
+        );
+
+        checked = performances.map(
+            p => selectedPaths.has(p.path)
+        );
     }
     $effect(() => {
-        console.log("selector effect:", performances.length, lockedPath);
-        if (performances.length > 0 && lockedPath) {
+        if (performances.length > 0) {
             initChecked();
         }
     });
