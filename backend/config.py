@@ -15,7 +15,7 @@ TITLES = [
 	"scores/6-Wasserflut.mei",
 	"scores/7-Auf_dem_Flusse.mei",
 	"scores/8-Rueckblick.mei",
-	"scores/9-Irrlicht.mei"
+	"scores/9-Irrlicht.mei",
 	"scores/10-Rast.mei",
 	"scores/11-Fruehlingstraum.mei",
 	"scores/12-Einsamkeit.mei",
