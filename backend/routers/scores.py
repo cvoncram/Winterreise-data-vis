@@ -1,27 +1,13 @@
 from fastapi import APIRouter
-from github_auth import get_installation_token
-import requests
-from config import OWNER, REPO, BRANCH
+from services.githubClient import fetch_repo_tree
+from config import PIECE_TITLES
 import re
 
 router = APIRouter()
 
 @router.get("/db/scores-folder")
 def get_scores_tree():
-    token = get_installation_token()
-    
-    url = f"https://api.github.com/repos/{OWNER}/{REPO}/git/trees/{BRANCH}?recursive=1"
-
-    headers = {
-        "Authorization": f"token {token}",
-        "Accept": "application/vnd.github+json",
-    }
-
-    r = requests.get(url, headers=headers, timeout=10)
-    r.raise_for_status()
-
-    tree_items = r.json()["tree"]
-
+    tree_items = fetch_repo_tree()
 
     def format_filename(name: str) -> str:
         name = re.sub(r"\.[^/.]+$", "", name)   # remove extension
@@ -78,13 +64,20 @@ def get_scores_tree():
 
         if item["type"] == "blob":
             filename = parts[-1]
+            order = extract_number(filename)
+            title = (
+                PIECE_TITLES[order - 1]
+                if 1 <= order <= len(PIECE_TITLES)
+                else None
+            )
+            label = f"{order}. {title}" if title else format_filename(filename)
 
             node[filename] = {
                 "type": "file",
                 "sha": item["sha"],
                 "path": path,
-                "label": format_filename(filename),
-                "order": extract_number(filename),
+                "label": label,
+                "order": order,
             }
         else:
             node.setdefault(parts[-1], {})

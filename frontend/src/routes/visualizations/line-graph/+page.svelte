@@ -5,7 +5,8 @@
 	import ScoreSelector from "$lib/components/partials/ScoreSelector.svelte";
 	import ParameterSelector from "$lib/components/partials/ParameterSelector.svelte";
 	import LineGraph from "$lib/components/containers/LineGraph.svelte";
-    
+    import { fetchAllPerformances, fetchPieces } from "$lib/api";
+
     let allPerformances = $state<CyclePerformance[]>([]);
     let selectedPerformances = $state<CyclePerformance[]>([]);
     let pieces = $state<SongInfo[]>([]);
@@ -55,35 +56,13 @@
 
     onMount(async () => {
         try {
-            const perfRes = await fetch('/db/performances');
-            if (!perfRes.ok) throw new Error('Could not fetch file list');
-            const perfList = await perfRes.json();
-
-            const piecesRes = await fetch("/db/scores-folder");
-            if (!piecesRes.ok) throw new Error("could not fetch pieces list");
-            const piecesList = await piecesRes.json();
-
-            pieces = piecesList.map((p: any) => ({
-                label: p.label,
-                nbInOrder: p.order,
-                path: p.path
-            }));
-
-            allPerformances = perfList.map((p: any) => ({
-                path: p.path,
-                label: p.label,
-                songPerformances: [],
-                metadata: { sampleRate: 0, mfValue: 0, dynamicStep: 0 }
-            }));
-            
+            pieces = await fetchPieces();
+            allPerformances = await fetchAllPerformances();
         } catch (e: any) {
             error = e.message;
             console.error(e);
         }
     })
-
-    
-
 </script>
 
 <div class="flex h-auto overflow-hidden">

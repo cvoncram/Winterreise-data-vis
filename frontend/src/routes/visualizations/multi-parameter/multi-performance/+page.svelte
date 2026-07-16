@@ -3,6 +3,7 @@
     import { onMount } from "svelte";
     import MeiLinearRibbon from '$lib/components/containers/MeiLinearRibbon.svelte';
     import MultiplePerformancesSelector from '$lib/components/partials/MultiplePerformancesSelector.svelte';
+    import ColorSchemeSelector from '$lib/components/partials/ColorSchemeSelector.svelte';
     import type { PerformanceRow, PerformanceMetadata, CyclePerformance } from '$lib/types';
     import { selectedMeasuresStore, selectedPieceStore, selectedPiecePath, startMeasure, startBeat, endMeasure, endBeat } from "$lib/stores/selection";
 	import MeiViewer from "$lib/components/containers/MeiViewer.svelte";
@@ -23,40 +24,35 @@
 
     let selectedColorDropdown: string = $state("viridisScheme");
 
+
+    let lockedPath = $state<string | null>(null);
+
     function applySelection() {
         const fullPath = get(selectedPiecePath);
         const folderName = fullPath.split("/")[1];
+        const matchingPerf = allPerformances.find(p => p.path === folderName);
+
+        lockedPath = folderName; // set once, never changes
 
         selectedPerformances = [{
             path: folderName,
-            label: "",
+            label: matchingPerf?.label ?? folderName,
             metadata: get(selectedPieceStore),
             songPerformances: [{ song: null, rows: get(selectedMeasuresStore) }]
         }];
-
-        for (let i=0; i < selectedPerformances.length; i++) {
-            for (let index = 0; index < allPerformances.length; index++) {
-                if (selectedPerformances[i].path === allPerformances[index].path){
-                    selectedPerformances[i].label = allPerformances[index].label;
-                }
-            }
-        };
     }
     
     async function displayScore() {
-        try {
-            const scoreRes = await fetch(`/db/file-measures?piece=${nbInOrder()}&start=${get(startMeasure)}&end=${get(endMeasure)}`)
-            score = await scoreRes.text();
+        showScore = !showScore;
+        if (showScore) {
+            try {
+                const scoreRes = await fetch(`/db/file-measures?piece=${nbInOrder()}&start=${get(startMeasure)}&end=${get(endMeasure)}`)
+                score = await scoreRes.text();
 
-        } catch (e:any) {
-            error = e.message;
-            console.error(e);
-        }
-    }
-
-    function selectMeasure(){
-        if (selectSameMeasure) {
-
+            } catch (e:any) {
+                error = e.message;
+                console.error(e);
+            }
         }
     }
 
@@ -111,38 +107,32 @@
     }
 
     async function handlePerformancesChange(newSelection: CyclePerformance[]) {
-
         try {
-            const existingPaths = new Set(selectedPerformances.map(p => p.path));
-
-            const newPaths = newSelection
-                .map(p => p.path)
-                .filter(path => !existingPaths.has(path));
-
-            if (newPaths.length === 0) {
-                selectedPerformances = newSelection;
-                return;
-            }
-
             const existingMap = new Map(
                 selectedPerformances.map(p => [p.path, p])
             );
 
-            const results = await fetchPerformanceData(newPaths);
+            const existingPaths = new Set(selectedPerformances.map(p => p.path));
+            const newPaths = newSelection
+                .map(p => p.path)
+                .filter(path => !existingPaths.has(path));
 
-            const fetchedMap = new Map(results.map(r => [r.performance, r]));
+            const fetchedMap = new Map<string, { performance: string; data: PerformanceRow[]; metadata: PerformanceMetadata }>();
+
+            if (newPaths.length > 0) {
+                const results = await fetchPerformanceData(newPaths);
+                results.forEach(r => fetchedMap.set(r.performance, r));
+            }
 
             selectedPerformances = newSelection.map(p => {
                 if (fetchedMap.has(p.path)) {
                     const r = fetchedMap.get(p.path)!;
-
                     return {
                         ...p,
                         metadata: r.metadata,
                         songPerformances: [{ song: null, rows: r.data }]
                     };
                 }
-
                 return existingMap.get(p.path) ?? p;
             });
 
@@ -161,31 +151,20 @@
 
         <div class="bg-base-100 w-full p-4 rounded-lg shadow flex flex-col overflow-visible">
             <h2 class="card-title justify-center">Display options</h2>
-            <label>
-                <h3 class="mt-2 text-l">Color scheme</h3>
-                <select class="select select-bordered w-full" bind:value={selectedColorDropdown}>
-                    <option value="viridisScheme">Viridis (default)</option>
-                    <option value="infernoScheme">Inferno</option>
-                    <option value="cividisScheme">Cividis</option>
-                    <option value="bluesScheme">Blue shades</option>
-                    <option value="greensScheme">Green shades</option>
-                    <option value="redsScheme">Red shades</option>
-                </select>
-            </label>
+            <ColorSchemeSelector bind:selectedColorDropdown />
         </div>
 
         <div class="bg-base-100 w-full p-4 rounded-lg shadow flex flex-col overflow-visible">
             <MultiplePerformancesSelector
                 performances={allPerformances}
                 selectedPerformances={selectedPerformances}
-                lockedPath={selectedPerformances[0]?.path}
+                {lockedPath}
                 onSelectionChange={handlePerformancesChange}
             />
         </div>
 
         <button class="btn btn-primary"
         onclick={() => {
-            showScore = !showScore;
             displayScore();
         }}>Display score measures</button>
 

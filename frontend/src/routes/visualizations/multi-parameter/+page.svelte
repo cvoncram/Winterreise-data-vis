@@ -4,6 +4,7 @@
     import ScoreSelector from '$lib/components/partials/ScoreSelector.svelte';
     import MeiTable from '$lib/components/containers/MeiTable.svelte';
     import MeiCircularRibbon from '$lib/components/containers/MeiCircularRibbon.svelte';
+    import ColorSchemeSelector from '$lib/components/partials/ColorSchemeSelector.svelte';
     import type { PerformanceRow, PerformanceMetadata, SongInfo, CyclePerformance } from '$lib/types';
     import { selectedPiecePath } from "$lib/stores/selection";
 
@@ -128,19 +129,7 @@
             </div>
             <div class="bg-base-100 w-full p-4 rounded-lg shadow flex flex-col overflow-visible">
                 <h2 class="card-title justify-center">Display options</h2>
-                <label>
-                    <h3 class="mt-2 text-l">Color scheme</h3>
-                    <select
-                        class="select select-bordered w-full"
-                        bind:value={selectedColorDropdown}>
-                        <option value="viridisScheme">Viridis (default)</option>
-                        <option value="infernoScheme">Inferno</option>
-                        <option value="cividisScheme">Cividis</option>
-                        <option value="bluesScheme">Blue shades</option>
-                        <option value="greensScheme">Green shades</option>
-                        <option value="redsScheme">Red shades</option>
-                    </select>
-                </label>
+                <ColorSchemeSelector bind:selectedColorDropdown />
 
                 <button class={`btn btn-sm btn-block mt-4 ${brushEnabled? "bg-base-300" : "btn-primary"}`}
                     onclick={() => {

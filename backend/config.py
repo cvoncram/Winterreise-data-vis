@@ -35,3 +35,31 @@ TITLES = [
 	"scores/23-Die_Nebensonnen.mei",
 	"scores/24-Der_Leiermann.mei",
 	]
+
+# Canonical display titles (proper German diacritics), index-aligned with TITLES.
+PIECE_TITLES = [
+	"Gute Nacht",
+	"Die Wetterfahne",
+	"Gefror'ne Tränen",
+	"Erstarrung",
+	"Der Lindenbaum",
+	"Wasserflut",
+	"Auf dem Flusse",
+	"Rückblick",
+	"Irrlicht",
+	"Rast",
+	"Frühlingstraum",
+	"Einsamkeit",
+	"Die Post",
+	"Der greise Kopf",
+	"Die Krähe",
+	"Letzte Hoffnung",
+	"Im Dorfe",
+	"Der stürmische Morgen",
+	"Täuschung",
+	"Der Wegweiser",
+	"Das Wirtshaus",
+	"Mut",
+	"Die Nebensonnen",
+	"Der Leiermann",
+	]

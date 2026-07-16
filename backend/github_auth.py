@@ -51,3 +51,7 @@ def get_installation_token():
     )
 
     return _cached_token
+
+
+def get_github_headers() -> dict:
+    return {"Authorization": f"token {get_installation_token()}"}

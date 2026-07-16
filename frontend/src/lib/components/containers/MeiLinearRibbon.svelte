@@ -1,6 +1,7 @@
 <script lang="ts">
     import * as d3 from "d3";
     import type { PerformanceRow, PerformanceMetadata } from "$lib/types";
+    import { applyColorScheme, computeDynamics } from "$lib/utils/performanceVisuals";
 
     let { displayedRows = $bindable([]), metadata, selectedColorDropdown = $bindable("viridisScheme"), selectedRowAll = $bindable(false), selectedRowTarget = $bindable(null) }:
         { displayedRows? : PerformanceRow[]; metadata: PerformanceMetadata | null; selectedColorDropdown?: string; selectedRowAll: boolean; selectedRowTarget: string | null } = $props();
@@ -13,33 +14,6 @@
     const marginRight = 10;
     const marginBottom = 30;
     const marginLeft = 40;
-
-    function applyColorScheme(color: number) {
-        if (selectedColorDropdown === "viridisScheme") return d3.interpolateViridis(color);
-        if (selectedColorDropdown === "infernoScheme") return d3.interpolateInferno(color);
-        if (selectedColorDropdown === "cividisScheme") return d3.interpolateCividis(color);
-        if (selectedColorDropdown === "greensScheme") return d3.interpolateGreens(1 - color);
-        if (selectedColorDropdown === "bluesScheme") return d3.interpolateBlues(1 - color);
-        if (selectedColorDropdown === "redsScheme") return d3.interpolateReds(1 - color);
-        return "";
-    }
-
-    function computeDynamics(data: PerformanceRow[], metadata: PerformanceMetadata) {
-        if (!metadata) return [];
-        const f = 12 / metadata.dynamicStep;
-        const map: Record<string, number> = { ppp:12, pp:24, p:36, mp:48, mf:60, f:72, ff:84, fff:96 };
-
-        return data.map(r => {
-            const numeric = parseFloat(r.dynamics);
-            if (!isNaN(numeric) && /^-?\d+(\.\d+)?$/.test(r.dynamics.trim())) {
-                return 0.3 + (((Math.abs(numeric) - Math.abs(metadata.mfValue)) / (-metadata.dynamicStep)) * 0.06);
-            }
-            const m = r.dynamics.match(/^([a-z]+)([+-]\d+)?$/i);
-            const base = map[m?.[1] ?? ""] ?? 0;
-            const off = m?.[2] ? Number(m[2]) : 0;
-            return (base + off * f) / 200;
-        });
-    }
 
     let visualData = $derived.by(() => {
         if (!metadata || !displayedRows.length) return [];
@@ -63,7 +37,7 @@
 
             return {
                 index: i,
-                color: applyColorScheme(((d.timbre ?? 0) - timbreMin) / diff),
+                color: applyColorScheme(selectedColorDropdown, ((d.timbre ?? 0) - timbreMin) / diff),
                 length: 0.5 + (dyn[i] / dynMax * 2),
                 width: d.tempo / tempoSum,
                 x0,
@@ -116,6 +90,7 @@
                     } else {
                         selectedRow = displayedRows[d.index];
                     };
+                    console.log("click!")
 
                 });
 
@@ -141,14 +116,14 @@
 
 <div class="flex gap-2 overflow-hidden">
     <div {@attach attachGraph} class="relative w-[75%]"></div>
-    {#if selectedRow}
-    <div class="relative w-[25%]">
-        <div><b>Selected measure:</b> {selectedRow?.measure}</div>
-        <div><b>Tempo:</b> {selectedRow?.tempo} bpm</div>
-        <div><b>Dynamics:</b> {selectedRow?.dynamics}</div>
-        <div><b>Spectral centroid:</b> {selectedRow?.timbre} Hz</div>
+    <div class="relative w-[25%] min-h-px">
+        {#if selectedRow}
+            <div><b>Selected measure:</b> {selectedRow?.measure}</div>
+            <div><b>Tempo:</b> {selectedRow?.tempo} bpm</div>
+            <div><b>Dynamics:</b> {selectedRow?.dynamics}</div>
+            <div><b>Spectral centroid:</b> {selectedRow?.timbre} Hz</div>
+        {/if}
     </div>
-    {/if}
 </div>
 
 <style>

@@ -3,7 +3,7 @@
 
     let {
         performances,
-        selectedPerformances,
+        selectedPerformances = $bindable(),
         lockedPath = null,
         onSelectionChange
     }: {
@@ -23,9 +23,10 @@
         checked = performances.map(
             p => selectedPaths.has(p.path)
         );
-    }
-    $effect(() => {
-        if (performances.length > 0) {
+   }
+
+   $effect(() => {
+        if (performances.length > 0 && lockedPath && checked.length === 0) {
             initChecked();
         }
     });

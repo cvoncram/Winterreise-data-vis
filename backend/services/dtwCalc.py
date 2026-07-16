@@ -1,3 +1,4 @@
+import re
 from dtaidistance import dtw
 import numpy as np
 from typing import Literal
@@ -56,7 +57,6 @@ def convert_dynamics(dynamics: list[str], metadata: dict) -> list[float]:
         if d == "extreme":
             result.append(0.0)
         else:
-            import re
             m = re.match(r"^([a-z]+)([+-]\d+)?$", d, re.IGNORECASE)
             base = map.get(m.group(1), 0.0) if m else 0.0
             off = float(m.group(2)) if m and m.group(2) else 0.0

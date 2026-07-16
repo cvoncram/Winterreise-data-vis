@@ -15,7 +15,7 @@
     let pageHeight = $state(600);
 
     let scaleLabel = $derived(scale);
-    let spacingPercentLabel = $derived(scale);
+    let spacingPercentLabel = $derived(spacingPercent);
     let pageWidthLabel = $derived(pageWidth);
     let pageHeightLabel = $derived(pageHeight);
 

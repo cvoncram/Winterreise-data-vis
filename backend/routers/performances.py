@@ -1,12 +1,10 @@
 # backend/routers/performances.py
 from fastapi import APIRouter, HTTPException
-from github_auth import get_installation_token
+from services.githubClient import fetch_repo_json, fetch_repo_text
 from services.pathSafety import is_safe_folder_name
-import requests
 import re
 import json
-import base64
-from config import OWNER, REPO, BRANCH
+from config import PIECE_TITLES
 
 router = APIRouter()
 
@@ -14,37 +12,11 @@ router = APIRouter()
 # Helper functions
 # -------------------------------
 
-def format_filename(name: str) -> str:
-    """
-    Convert raw filename to a user-friendly label.
-    - Remove extension
-    - Replace underscores with spaces
-    - Replace hyphens with dots
-    """
-    name = re.sub(r"\.[^/.]+$", "", name)  # remove extension
-    name = re.sub(r"[-]", ". ", name)
-    name = re.sub(r"[_]", " ", name)
-    return name
-
-def extract_number(name: str) -> int:
-    """
-    Extract leading number from filename for sorting
-    """
-    match = re.match(r"^\d+", name)
-    return int(match.group()) if match else 0
-
 def get_performances_json() -> list[dict]:
     """
     Fetch and parse performances.json from the repo
     """
-    token = get_installation_token()
-    url = f"https://api.github.com/repos/{OWNER}/{REPO}/contents/performances/performances.json?ref={BRANCH}"
-    headers = {"Authorization": f"token {token}"}
-
-    r = requests.get(url, headers=headers, timeout=10)
-    r.raise_for_status()
-    content_b64 = r.json()["content"]
-    content = base64.b64decode(content_b64).decode()
+    content = fetch_repo_text("performances/performances.json")
     return json.loads(content)
 
 # -------------------------------
@@ -57,11 +29,7 @@ def list_performances():
     Return a list of recording folders (recordings) in /performances,
     enriched with info from performances.json for friendly labels.
     """
-    token = get_installation_token()
-    url = f"https://api.github.com/repos/{OWNER}/{REPO}/contents/performances?ref={BRANCH}"
-    headers = {"Authorization": f"token {token}"}
-
-    r = requests.get(url, headers=headers, timeout=10)
+    r = fetch_repo_json("performances")
     r.raise_for_status()
     items = r.json()
 
@@ -117,11 +85,7 @@ def list_performance_files(performance: str):
     if not is_safe_folder_name(performance):
         raise HTTPException(status_code=400, detail="Invalid performance path")
 
-    token = get_installation_token()
-    url = f"https://api.github.com/repos/{OWNER}/{REPO}/contents/performances/{performance}?ref={BRANCH}"
-    headers = {"Authorization": f"token {token}"}
-
-    r = requests.get(url, headers=headers, timeout=10)
+    r = fetch_repo_json(f"performances/{performance}")
     if r.status_code == 404:
         raise HTTPException(status_code=404, detail="Recording not found")
     r.raise_for_status()
@@ -135,35 +99,10 @@ def list_performance_files(performance: str):
             # Extract the piece number from the filename
             match = re.search(r"_(\d+)_", filename)
             piece_num = int(match.group(1)) if match else 0
-            piece_titles = [
-                "Gute Nacht",
-                "Die Wetterfahne",
-                "Gefror'ne Tränen",
-                "Erstarrung",
-                "Der Lindenbaum",
-                "Wasserflut",
-                "Auf dem Flusse",
-                "Rückblick",
-                "Irrlicht",
-                "Rast",
-                "Frühlingstraum",
-                "Einsamkeit",
-                "Die Post",
-                "Der greise Kopf",
-                "Die Krähe",
-                "Letzte Hoffnung",
-                "Im Dorfe",
-                "Der stürmische Morgen",
-                "Täuschung",
-                "Der Wegweiser",
-                "Das Wirtshaus",
-                "Mut",
-                "Die Nebensonnen",
-                "Der Leiermann"
-                ]
 
             # Create a nice label
-            label = f"{piece_num}. {piece_titles[piece_num - 1]}"
+            title = PIECE_TITLES[piece_num - 1] if 1 <= piece_num <= len(PIECE_TITLES) else filename
+            label = f"{piece_num}. {title}"
 
             files.append({
                 "name": filename,

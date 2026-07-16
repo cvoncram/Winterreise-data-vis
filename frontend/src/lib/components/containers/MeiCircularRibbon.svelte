@@ -3,6 +3,7 @@
     import * as d3 from "d3";
     import { goto } from "$app/navigation";
     import { selectedMeasuresStore, selectedPieceStore, startMeasure, startBeat, endMeasure, endBeat } from "$lib/stores/selection";
+    import { applyColorScheme, computeDynamics } from "$lib/utils/performanceVisuals";
 
     import type {
         PerformanceRow,
@@ -27,33 +28,6 @@
     let width = $state(0);
     let height = $state(0);
 
-    function applyColorScheme(color: number) {
-        if (selectedColorDropdown === "viridisScheme") return d3.interpolateViridis(color);
-        if (selectedColorDropdown === "infernoScheme") return d3.interpolateInferno(color);
-        if (selectedColorDropdown === "cividisScheme") return d3.interpolateCividis(color);
-        if (selectedColorDropdown === "greensScheme") return d3.interpolateGreens(1 - color);
-        if (selectedColorDropdown === "bluesScheme") return d3.interpolateBlues(1 - color);
-        if (selectedColorDropdown === "redsScheme") return d3.interpolateReds(1 - color);
-        return "";
-    }
-
-    function computeDynamics(data: PerformanceRow[]) {
-        if (!metadata) return [];
-        const f = 12 / metadata.dynamicStep;
-        const map: Record<string, number> = { ppp:12, pp:24, p:36, mp:48, mf:60, f:72, ff:84, fff:96 };
-
-        return data.map(r => {
-            const numeric = parseFloat(r.dynamics);
-            if (!isNaN(numeric) && /^-?\d+(\.\d+)?$/.test(r.dynamics.trim())) {
-                return 0.3 + (((Math.abs(numeric) - Math.abs(metadata.mfValue)) / (-metadata.dynamicStep)) * 0.06);
-            }
-            const m = r.dynamics.match(/^([a-z]+)([+-]\d+)?$/i);
-            const base = map[m?.[1] ?? ""] ?? 0;
-            const off = m?.[2] ? Number(m[2]) : 0;
-            return (base + off * f) / 200;
-        });
-    }
-
     let visualData = $derived.by(() => {
         if (!displayedRows.length || !metadata) return [];
 
@@ -61,7 +35,7 @@
         const max = d3.max(displayedRows, d => d.timbre) ?? 0;
         const diff = max - min || 1;
 
-        const dyn = computeDynamics(displayedRows);
+        const dyn = computeDynamics(displayedRows, metadata);
 
         const pie = d3.pie<PerformanceRow>()
             .sort(null)
@@ -73,7 +47,7 @@
             ...d,
             index: i,
             thickness: dyn[i] ?? 0,
-            color: applyColorScheme(((d.data.timbre ?? 0) - min) / diff)
+            color: applyColorScheme(selectedColorDropdown, ((d.data.timbre ?? 0) - min) / diff)
         } satisfies ArcDatum));
     });
 
