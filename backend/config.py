@@ -2,6 +2,9 @@ OWNER = "cvoncram"
 REPO = "Winterreise-database-test"
 BRANCH = "main"
 
+SCORES_PREFIX = "scores/"
+PERFORMANCES_PREFIX = "performances/"
+
 MEI_NS = {"mei": "http://www.music-encoding.org/ns/mei",
           "xml": "http://www.w3.org/XML/1998/namespace"
           }

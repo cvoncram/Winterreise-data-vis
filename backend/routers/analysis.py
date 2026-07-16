@@ -1,7 +1,8 @@
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, HTTPException, Query
 from github_auth import get_installation_token
 from services.meiParser import parse_mei_to_rows, parse_mei_metadata
 from services.dtwCalc import calculate_dtw_matrix
+from services.pathSafety import is_safe_folder_name
 import requests
 import base64
 from config import OWNER, REPO, BRANCH
@@ -15,16 +16,19 @@ def calculate_dtw(
     piece: int,
     paths: list[str] = Query(...)
 ):
+    for path in paths:
+        if not is_safe_folder_name(path):
+            raise HTTPException(status_code=400, detail="Invalid performance path")
+
     token = get_installation_token()
     headers = {"Authorization": f"token {token}"}
-    
+
     performances = []
     for path in paths:
         folder_name = path
         file_path = f"performances/{path}/{folder_name}_{piece}_Audio_Data.xml"
         url = f"https://api.github.com/repos/{OWNER}/{REPO}/contents/{file_path}?ref={BRANCH}"
-        print (url);
-        r = requests.get(url, headers=headers)
+        r = requests.get(url, headers=headers, timeout=10)
         r.raise_for_status()
         xml = base64.b64decode(r.json()["content"]).decode()
         performances.append({

@@ -1,9 +1,11 @@
 # backend/routers/performances.py
 from fastapi import APIRouter, HTTPException
 from github_auth import get_installation_token
+from services.pathSafety import is_safe_folder_name
 import requests
 import re
 import json
+import base64
 from config import OWNER, REPO, BRANCH
 
 router = APIRouter()
@@ -39,10 +41,9 @@ def get_performances_json() -> list[dict]:
     url = f"https://api.github.com/repos/{OWNER}/{REPO}/contents/performances/performances.json?ref={BRANCH}"
     headers = {"Authorization": f"token {token}"}
 
-    r = requests.get(url, headers=headers)
+    r = requests.get(url, headers=headers, timeout=10)
     r.raise_for_status()
     content_b64 = r.json()["content"]
-    import base64
     content = base64.b64decode(content_b64).decode()
     return json.loads(content)
 
@@ -60,7 +61,7 @@ def list_performances():
     url = f"https://api.github.com/repos/{OWNER}/{REPO}/contents/performances?ref={BRANCH}"
     headers = {"Authorization": f"token {token}"}
 
-    r = requests.get(url, headers=headers)
+    r = requests.get(url, headers=headers, timeout=10)
     r.raise_for_status()
     items = r.json()
 
@@ -113,11 +114,14 @@ def list_performance_files(performance: str):
     Return all MEI files inside a recording folder, with friendly labels and order.
     Filenames are assumed to follow: folder_name_number_audio_data.xml
     """
+    if not is_safe_folder_name(performance):
+        raise HTTPException(status_code=400, detail="Invalid performance path")
+
     token = get_installation_token()
     url = f"https://api.github.com/repos/{OWNER}/{REPO}/contents/performances/{performance}?ref={BRANCH}"
     headers = {"Authorization": f"token {token}"}
 
-    r = requests.get(url, headers=headers)
+    r = requests.get(url, headers=headers, timeout=10)
     if r.status_code == 404:
         raise HTTPException(status_code=404, detail="Recording not found")
     r.raise_for_status()

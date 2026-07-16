@@ -16,9 +16,8 @@ def get_scores_tree():
         "Authorization": f"token {token}",
         "Accept": "application/vnd.github+json",
     }
-    print(url)
 
-    r = requests.get(url, headers=headers)
+    r = requests.get(url, headers=headers, timeout=10)
     r.raise_for_status()
 
     tree_items = r.json()["tree"]
