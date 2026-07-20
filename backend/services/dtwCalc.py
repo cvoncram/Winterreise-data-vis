@@ -17,7 +17,7 @@ def calculate_dtw_matrix(
         elif parameter == "timbre":
             seq = [r["timbre"] for r in rows if r["timbre"] is not None]
         elif parameter == "dynamics":
-            seq = convert_dynamics([r["dynamics"] for r in rows], perf["metadata"])
+            seq = [r["dynamics"] for r in rows if r["timbre"] is not None]
         sequences.append(np.array(seq, dtype=np.float64))
     
     matrix = dtw.distance_matrix_fast(sequences)
