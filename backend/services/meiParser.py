@@ -85,13 +85,18 @@ def parse_rows(
 
 
 
-def parse_mei_metadata(xml: str) -> dict[str, float | int]:
+def parse_mei_metadata(xml: str) -> dict[str, float | int] | None:
     root = ET.fromstring(xml)
 
     metadata_element = root.find(
         './/mei:application[@xml:id="sv_to_mei"]',
         MEI_NS
     )
+    if metadata_element is None:
+        # Some older-pipeline files don't carry this calibration block at
+        # all (e.g. generated before it was introduced) — callers should
+        # treat this piece as unusable for anything metadata-dependent.
+        return None
 
     sampleRateElement = metadata_element.find(
         './/mei:annot[@type="sampleRate"]',

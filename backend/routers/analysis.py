@@ -1,8 +1,10 @@
-from typing import Literal, Optional
+from typing import List, Literal, Optional
+import numpy as np
 import requests
 from fastapi import APIRouter, HTTPException, Query
 from services.meiParser import parse_rows, parse_mei_metadata
-from services.dtwCalc import calculate_dtw_matrix
+from services.dtwCalc import calculate_dtw_matrix, combined_dtw_matrix, normalize_series
+from services.statsCalc import get_normalization_reference
 from services.pathSafety import is_safe_folder_name
 from services.githubClient import fetch_repo_text
 from config import TITLES
@@ -25,8 +27,11 @@ def _rows_for_performance(
 
 @router.get("/db/analysis")
 def calculate_dtw(
-    parameter: str,
     paths: list[str] = Query(...),
+    parameter: Optional[str] = None,
+    parameters: Optional[List[str]] = Query(None),
+    metric: Literal["euclidean", "mahalanobis"] = "euclidean",
+    weights: Optional[List[float]] = Query(None),
     scope: Literal["piece", "cycle", "halfCycle", "measures"] = "piece",
     piece: Optional[int] = None,
     half: Optional[int] = None,
@@ -35,6 +40,10 @@ def calculate_dtw(
     end: Optional[int] = None,
     end_beat: Optional[int] = None,
 ):
+    if not parameter and not parameters:
+        raise HTTPException(status_code=400, detail="parameter or parameters is required")
+    if parameters and weights is not None and len(weights) != len(parameters):
+        raise HTTPException(status_code=400, detail="weights must be the same length as parameters")
     for path in paths:
         if not is_safe_folder_name(path):
             raise HTTPException(status_code=400, detail="Invalid performance path")
@@ -79,6 +88,41 @@ def calculate_dtw(
             if metadata is None:
                 metadata = piece_metadata
         performances.append({"data": all_rows, "metadata": metadata})
+
+    def _is_usable(r, kind: str) -> bool:
+        value = r.get(kind)
+        if value is None:
+            return False
+        if kind == "dynamics":
+            try:
+                float(value)
+            except ValueError:
+                return False
+        return True
+
+    if parameters:
+        sequences = []
+        for path, perf in zip(paths, performances):
+            reference_by_kind = get_normalization_reference(path, piece, scope)
+            rows = perf["data"]
+            selected_rows = [
+                r for r in rows if all(_is_usable(r, kind) for kind in parameters)
+            ]
+            dims = [
+                normalize_series(
+                    [r[kind] for r in selected_rows], kind, reference_by_kind[kind]
+                )
+                for kind in parameters
+            ]
+            sequences.append(np.stack(dims, axis=1) if dims else np.empty((0, len(parameters))))
+
+        result = combined_dtw_matrix(sequences, metric, weights)
+        result["parameters"] = parameters
+        result["metric"] = metric
+        result["weights"] = weights
+        result["piece"] = piece
+        result["scope"] = scope
+        return result
 
     result = calculate_dtw_matrix(parameter, piece, performances)
     result["scope"] = scope
