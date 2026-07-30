@@ -18,6 +18,11 @@ export type PerformanceMetadata = {
     dynamicStep: number;
 };
 
+export type NormalizationReference = {
+    dynamics: { median: number | null; std: number | null };
+    timbre: { logMedian: number | null; std: number | null };
+};
+
 export type Parameter = 
     keyof Pick<PerformanceRow, "tempo" | "dynamics" | "timbre">;
 
@@ -35,6 +40,7 @@ export type SongPerformance = {
 export type CyclePerformance = {
     songPerformances: SongPerformance[];
     metadata: PerformanceMetadata;
+    normalizationReference?: NormalizationReference;
     path: string;
     label: string;
 }

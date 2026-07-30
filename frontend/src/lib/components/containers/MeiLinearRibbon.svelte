@@ -1,10 +1,10 @@
 <script lang="ts">
     import * as d3 from "d3";
-    import type { PerformanceRow, PerformanceMetadata } from "$lib/types";
-    import { applyColorScheme, computeDynamics } from "$lib/utils/performanceVisuals";
+    import type { PerformanceRow, PerformanceMetadata, NormalizationReference } from "$lib/types";
+    import { applyColorScheme, computeDynamicsUnit, computeTimbreUnit } from "$lib/utils/performanceVisuals";
 
-    let { displayedRows = $bindable([]), metadata, selectedColorDropdown = $bindable("viridisScheme"), selectedRowAll = $bindable(false), selectedRowTarget = $bindable(null) }:
-        { displayedRows? : PerformanceRow[]; metadata: PerformanceMetadata | null; selectedColorDropdown?: string; selectedRowAll: boolean; selectedRowTarget: string | null } = $props();
+    let { displayedRows = $bindable([]), metadata, normalizationReference = null, selectedColorDropdown = $bindable("viridisScheme"), selectedRowAll = $bindable(false), selectedRowTarget = $bindable(null) }:
+        { displayedRows? : PerformanceRow[]; metadata: PerformanceMetadata | null; normalizationReference?: NormalizationReference | null; selectedColorDropdown?: string; selectedRowAll: boolean; selectedRowTarget: string | null } = $props();
 
     let selectedRow = $state<PerformanceRow | null>(null);
 
@@ -18,12 +18,8 @@
     let visualData = $derived.by(() => {
         if (!metadata || !displayedRows.length) return [];
 
-        const timbreMin = d3.min(displayedRows, d => d.timbre) ?? 0;
-        const timbreMax = d3.max(displayedRows, d => d.timbre) ?? 0;
-        const diff = timbreMax - timbreMin || 1;
-
-        const dyn = computeDynamics(displayedRows, metadata);
-        const dynMax = d3.max(dyn) ?? 0;
+        const dyn = computeDynamicsUnit(displayedRows, normalizationReference);
+        const timbreUnit = computeTimbreUnit(displayedRows, normalizationReference);
 
         const tempoSum = d3.sum(displayedRows, d => d.tempo) ?? 0;
 
@@ -37,8 +33,8 @@
 
             return {
                 index: i,
-                color: applyColorScheme(selectedColorDropdown, ((d.timbre ?? 0) - timbreMin) / diff),
-                length: 0.5 + (dyn[i] / dynMax * 2),
+                color: applyColorScheme(selectedColorDropdown, timbreUnit[i] ?? 0.5),
+                length: 0.5 + (dyn[i] ?? 0.5) * 2,
                 width: d.tempo / tempoSum,
                 x0,
                 x1
@@ -120,7 +116,7 @@
         {#if selectedRow}
             <div><b>Selected measure:</b> {selectedRow?.measure}</div>
             <div><b>Tempo:</b> {selectedRow?.tempo} bpm</div>
-            <div><b>Dynamics:</b> {selectedRow?.dynamics}</div>
+            <div><b>Dynamics:</b> {selectedRow?.dynamics} dB</div>
             <div><b>Spectral centroid:</b> {selectedRow?.timbre} Hz</div>
         {/if}
     </div>

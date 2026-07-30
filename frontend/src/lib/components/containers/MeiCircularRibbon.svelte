@@ -3,11 +3,12 @@
     import * as d3 from "d3";
     import { goto } from "$app/navigation";
     import { selectedMeasuresStore, selectedPieceStore, startMeasure, startBeat, endMeasure, endBeat } from "$lib/stores/selection";
-    import { applyColorScheme, computeDynamics } from "$lib/utils/performanceVisuals";
+    import { applyColorScheme, computeDynamicsUnit, computeTimbreUnit } from "$lib/utils/performanceVisuals";
 
     import type {
         PerformanceRow,
-        PerformanceMetadata
+        PerformanceMetadata,
+        NormalizationReference
     } from "$lib/types";
 
     type ArcDatum = d3.PieArcDatum<PerformanceRow> & {
@@ -16,8 +17,8 @@
         index: number;
     };
 
-    let { displayedRows = $bindable([]), metadata, brushEnabled=$bindable(false), selectedColorDropdown=$bindable("viridisScheme") }:
-        { displayedRows? : PerformanceRow[]; metadata: PerformanceMetadata | null; brushEnabled?: boolean; selectedColorDropdown?: string } = $props();
+    let { displayedRows = $bindable([]), metadata, normalizationReference = null, brushEnabled=$bindable(false), selectedColorDropdown=$bindable("viridisScheme") }:
+        { displayedRows? : PerformanceRow[]; metadata: PerformanceMetadata | null; normalizationReference?: NormalizationReference | null; brushEnabled?: boolean; selectedColorDropdown?: string } = $props();
 
     let svg: SVGSVGElement;
 
@@ -31,11 +32,8 @@
     let visualData = $derived.by(() => {
         if (!displayedRows.length || !metadata) return [];
 
-        const min = d3.min(displayedRows, d => d.timbre) ?? 0;
-        const max = d3.max(displayedRows, d => d.timbre) ?? 0;
-        const diff = max - min || 1;
-
-        const dyn = computeDynamics(displayedRows, metadata);
+        const dyn = computeDynamicsUnit(displayedRows, normalizationReference);
+        const timbreUnit = computeTimbreUnit(displayedRows, normalizationReference);
 
         const pie = d3.pie<PerformanceRow>()
             .sort(null)
@@ -47,7 +45,7 @@
             ...d,
             index: i,
             thickness: dyn[i] ?? 0,
-            color: applyColorScheme(selectedColorDropdown, ((d.data.timbre ?? 0) - min) / diff)
+            color: applyColorScheme(selectedColorDropdown, timbreUnit[i] ?? 0.5)
         } satisfies ArcDatum));
     });
 
@@ -69,7 +67,7 @@
 
         const arcGen = d3.arc<ArcDatum>()
             .innerRadius(r * 0.5)
-            .outerRadius(d => r * (0.5 + d.thickness))
+            .outerRadius(d => r * (0.5 + d.thickness * 0.5))
             .padAngle(0.001)
             .cornerRadius(5);
 
@@ -169,7 +167,7 @@
         <div class="absolute bottom-10 left-1/2 -translate-x-1/2 bg-base-200 p-4 rounded-xl shadow-xl">
             <div>
                 <h3 class="card-title">Measure {selectedRow.measure}</h3>
-                <p>Tempo (bpm): {selectedRow.tempo}<br>Dynamics: {selectedRow.dynamics}<br>Spectral centroid (Hz): {selectedRow.timbre}
+                <p>Tempo (bpm): {selectedRow.tempo}<br>Dynamics (dB): {selectedRow.dynamics}<br>Spectral centroid (Hz): {selectedRow.timbre}
                 </p>
             </div>
         </div>

@@ -1,5 +1,5 @@
 import * as d3 from "d3";
-import type { PerformanceRow, PerformanceMetadata } from "$lib/types";
+import type { NormalizationReference, PerformanceRow } from "$lib/types";
 
 export function applyColorScheme(scheme: string, value: number): string {
     if (scheme === "viridisScheme") return d3.interpolateViridis(value);
@@ -11,19 +11,40 @@ export function applyColorScheme(scheme: string, value: number): string {
     return "";
 }
 
-export function computeDynamics(data: PerformanceRow[], metadata: PerformanceMetadata | null): number[] {
-    if (!metadata) return [];
-    const f = 12 / metadata.dynamicStep;
-    const map: Record<string, number> = { ppp: 12, pp: 24, p: 36, mp: 48, mf: 60, f: 72, ff: 84, fff: 96 };
+/** Clamp a z-score to +/-`clamp` standard deviations, rescaled to [0,1]. */
+export function zScoreToUnit(z: number, clamp = 2): number {
+    const clamped = Math.max(-clamp, Math.min(clamp, z));
+    return (clamped + clamp) / (2 * clamp);
+}
 
-    return data.map(r => {
-        const numeric = parseFloat(r.dynamics);
-        if (!isNaN(numeric) && /^-?\d+(\.\d+)?$/.test(r.dynamics.trim())) {
-            return 0.3 + (((Math.abs(numeric) - Math.abs(metadata.mfValue)) / (-metadata.dynamicStep)) * 0.06);
-        }
-        const m = r.dynamics.match(/^([a-z]+)([+-]\d+)?$/i);
-        const base = map[m?.[1] ?? ""] ?? 0;
-        const off = m?.[2] ? Number(m[2]) : 0;
-        return (base + off * f) / 200;
+/**
+ * Per-beat dynamics expressed as a [0,1] unit value: how far (in clamped
+ * standard deviations) this beat's raw dB value sits from the reference
+ * recording/piece's own median, scaled by the corpus-wide spread.
+ */
+export function computeDynamicsUnit(rows: PerformanceRow[], reference: NormalizationReference | null): number[] {
+    const median = reference?.dynamics?.median;
+    const std = reference?.dynamics?.std;
+    if (median == null || !std) return rows.map(() => 0.5);
+
+    return rows.map(r => {
+        const raw = parseFloat(r.dynamics);
+        if (isNaN(raw)) return 0.5;
+        return zScoreToUnit((raw - median) / std);
+    });
+}
+
+/**
+ * Per-beat timbre expressed as a [0,1] unit value, same idea as
+ * computeDynamicsUnit but on log-transformed spectral centroid.
+ */
+export function computeTimbreUnit(rows: PerformanceRow[], reference: NormalizationReference | null): number[] {
+    const logMedian = reference?.timbre?.logMedian;
+    const std = reference?.timbre?.std;
+    if (logMedian == null || !std) return rows.map(() => 0.5);
+
+    return rows.map(r => {
+        if (r.timbre == null || r.timbre <= 0) return 0.5;
+        return zScoreToUnit((Math.log(r.timbre) - logMedian) / std);
     });
 }

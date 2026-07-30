@@ -20,6 +20,8 @@
         for (let i=0; i < data.length; i++) {
             if (data[i] == "extreme"){
                 numVals[i] = 0;
+            } else if (/^-?\d+(\.\d+)?$/.test(data[i].trim())) {
+                numVals[i] = Math.abs(parseFloat(data[i]));
             } else {
                 const m = data[i].match(/^([a-z]+)([+-]\d+)?$/i);
                 const base = map[m?.[1] ?? ""] ?? 0;

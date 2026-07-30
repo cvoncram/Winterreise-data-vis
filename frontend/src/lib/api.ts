@@ -1,4 +1,4 @@
-import type { CyclePerformance, SongInfo } from "$lib/types";
+import type { CyclePerformance, NormalizationReference, SongInfo } from "$lib/types";
 
 export async function fetchAllPerformances(): Promise<CyclePerformance[]> {
 	const res = await fetch('/db/performances');
@@ -23,10 +23,25 @@ export async function fetchPieces(): Promise<SongInfo[]> {
 	}));
 }
 
+export async function fetchNormalizationReference(
+	performance: string,
+	piece: number
+): Promise<NormalizationReference> {
+	const search = new URLSearchParams({ performance, piece: String(piece) });
+	const res = await fetch(`/db/stats/normalization-reference?${search.toString()}`);
+	if (!res.ok) throw new Error('Could not fetch normalization reference');
+	return res.json();
+}
+
 export type DtwScope = 'piece' | 'cycle' | 'halfCycle' | 'measures';
 
+export type DtwMetric = 'euclidean' | 'mahalanobis';
+
 export interface DtwAnalysisParams {
-	parameter: string;
+	parameter?: string;
+	parameters?: string[];
+	metric?: DtwMetric;
+	weights?: number[];
 	paths: string[];
 	scope: DtwScope;
 	piece?: number;
@@ -38,7 +53,10 @@ export interface DtwAnalysisParams {
 }
 
 export interface DtwAnalysisResult {
-	parameter: string;
+	parameter?: string;
+	parameters?: string[];
+	metric?: DtwMetric;
+	weights?: number[] | null;
 	piece: number | null;
 	n: number;
 	matrix: number[][];
@@ -47,7 +65,13 @@ export interface DtwAnalysisResult {
 
 export async function runDtwAnalysis(params: DtwAnalysisParams): Promise<DtwAnalysisResult> {
 	const search = new URLSearchParams();
-	search.set('parameter', params.parameter);
+	if (params.parameters?.length) {
+		params.parameters.forEach((p) => search.append('parameters', p));
+		if (params.metric) search.set('metric', params.metric);
+		if (params.weights) params.weights.forEach((w) => search.append('weights', String(w)));
+	} else if (params.parameter) {
+		search.set('parameter', params.parameter);
+	}
 	search.set('scope', params.scope);
 	if (params.piece !== undefined) search.set('piece', String(params.piece));
 	if (params.half !== undefined) search.set('half', String(params.half));

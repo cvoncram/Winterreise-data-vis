@@ -2,100 +2,98 @@
     import { onMount } from 'svelte';
     import ScoreSelector from '$lib/components/partials/ScoreSelector.svelte';
     import MeiViewer from '$lib/components/containers/MeiViewer.svelte';
-    import type {SongInfo} from "$lib/types"; 
+    import type {SongInfo} from "$lib/types";
+    import { scoresPageState as pageState } from "./pageState.svelte";
 
-    let files = $state<SongInfo[]>([]);
-    let selectedFile = $state<SongInfo | null>(null);
-    let meiContent = $state<string | null>(null);
     let error = $state<string>('');
+    let loading = $state(false);
 
-    let scale = $state(40);
-    let spacingPercent = $state(25);
-    let pageWidth = $state(1400);
-    let pageHeight = $state(600);
-
-    let scaleLabel = $derived(scale);
-    let spacingPercentLabel = $derived(spacingPercent);
-    let pageWidthLabel = $derived(pageWidth);
-    let pageHeightLabel = $derived(pageHeight);
+    let scaleLabel = $derived(pageState.scale);
+    let spacingPercentLabel = $derived(pageState.spacingPercent);
+    let pageWidthLabel = $derived(pageState.pageWidth);
+    let pageHeightLabel = $derived(pageState.pageHeight);
 
     let meiViewer = $state<ReturnType<typeof MeiViewer>>();
 
     async function fetchSelectedFile(file: SongInfo) {
+        loading = true;
         try {
             const res = await fetch(
             `/db/file?path=${encodeURIComponent(file.path)}`
             );
-            
+
             if (!res.ok) throw new Error('Could not fetch MEI file');
-            
+
             const data = await res.text();
-            meiContent = data; 
-            
+            pageState.meiContent = data;
+
         } catch (e: any) {
             error = e.message;
             console.error(e);
-            meiContent = null;
+            pageState.meiContent = null;
+        } finally {
+            loading = false;
         }
-    }  
-    
+    }
+
     function handleFileSelect(file: SongInfo) {
-        selectedFile = file;
+        pageState.selectedFile = file;
         fetchSelectedFile(file);
     }
-    
+
     onMount(async () => {
+        if (pageState.files.length > 0) return;
         try {
             const res = await fetch('/db/scores-folder');
             if (!res.ok) throw new Error('Could not fetch file list');
             const data = await res.json();
-            
-            files = data;
-            
+
+            pageState.files = data;
+
         } catch (e: any) {
             error = e.message;
             console.error(e);
         }
     });
-    
+
 </script>
 <span class="label-text mb-2 text-lg font-semibold">Change appearance</span>
 <div class="flex">
     <div class="fixed top-0 left-0 h-full w-64 bg-base-200 p-4 flex flex-col justify-center items-center gap-4 z-10">
-        
+
         <div class="card bg-base-200 p-4 gap-4 shadow-md justify-start">
             <ScoreSelector
-            {files}
-            selectedFile={selectedFile}
+            files={pageState.files}
+            selectedFile={pageState.selectedFile}
             onFileSelect={handleFileSelect}
             />
             {#if error}
             <p class="text-error mt-2">{error}</p>
             {/if}
-            {#if meiContent}
+            {#if pageState.meiContent}
             <div class="bg-base-100 gap-4 p-4 rounded-lg shadow flex flex-col items-start overflow-visible">
                 <span class="label-text mb-2 text-lg font-semibold">Change size and appearance</span>
                 <label>Scale (percent):
-                    <input type="range" min="10" max="80" value={scale} class="range range-s range-primary"
-                    onchange={(e) => { scale = Number(e.currentTarget.value); meiViewer?.doLayout();}}
+                    <input type="range" min="10" max="80" value={pageState.scale} class="range range-s range-primary"
+                    onchange={(e) => { pageState.scale = Number(e.currentTarget.value); meiViewer?.doLayout();}}
                     oninput={(e) => {scaleLabel = Number(e.currentTarget.value)}}/>
                     <span class="font-bold">{scaleLabel}</span>
                 </label>
                 <label>Spacing (percent):
-                    <input type="range" min="1" max="100" value={spacingPercent} class="range range-s range-primary"
-                    onchange={(e) => { spacingPercent = Number(e.currentTarget.value); meiViewer?.doLayout();}}
+                    <input type="range" min="1" max="100" value={pageState.spacingPercent} class="range range-s range-primary"
+                    onchange={(e) => { pageState.spacingPercent = Number(e.currentTarget.value); meiViewer?.doLayout();}}
                     oninput={(e) => {spacingPercentLabel = Number(e.currentTarget.value)}}/>
                     <span class="font-bold">{spacingPercentLabel}</span>
                 </label>
                 <label>Page width (pixels):
-                    <input type="range" min="400" max="1600" value={pageWidth} class="range range-s range-primary"
-                    onchange={(e) => { pageWidth = Number(e.currentTarget.value); meiViewer?.doLayout();}}
+                    <input type="range" min="400" max="1600" value={pageState.pageWidth} class="range range-s range-primary"
+                    onchange={(e) => { pageState.pageWidth = Number(e.currentTarget.value); meiViewer?.doLayout();}}
                     oninput={(e) => {pageWidthLabel = Number(e.currentTarget.value)}}/>
                     <span class="font-bold">{pageWidthLabel}</span>
                 </label>
                 <label>Minimum page height (pixels):
-                    <input type="range" min="300" max="4000" value={pageHeight} class="range range-s range-primary"
-                    onchange={(e) => { pageHeight = Number(e.currentTarget.value); meiViewer?.doLayout();}}
+                    <input type="range" min="300" max="4000" value={pageState.pageHeight} class="range range-s range-primary"
+                    onchange={(e) => { pageState.pageHeight = Number(e.currentTarget.value); meiViewer?.doLayout();}}
                     oninput={(e) => {pageHeightLabel = Number(e.currentTarget.value)}}/>
                     <span class="font-bold">{pageHeightLabel}</span>
                 </label>
@@ -106,15 +104,19 @@
     </div>
 
     <div class="ml-64 p-4">
-        
-        {#if meiContent}
+
+        {#if loading}
+        <div class="flex items-center justify-center w-full h-[80vh]">
+            <span class="loading loading-spinner loading-lg"></span>
+        </div>
+        {:else if pageState.meiContent}
         <div class="card bg-base-100 p-4 shadow-md">
-            <MeiViewer bind:this={meiViewer} src={meiContent} bind:scale bind:spacingPercent bind:pageWidth bind:pageHeight/>
+            <MeiViewer bind:this={meiViewer} src={pageState.meiContent} bind:scale={pageState.scale} bind:spacingPercent={pageState.spacingPercent} bind:pageWidth={pageState.pageWidth} bind:pageHeight={pageState.pageHeight}/>
         </div>
         {/if}
 
     </div>
-    
+
 </div>
 
 <style>
