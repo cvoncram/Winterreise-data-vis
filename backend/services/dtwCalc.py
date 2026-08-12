@@ -1,5 +1,4 @@
 import math
-import re
 from dtaidistance import dtw
 import numpy as np
 from typing import Literal, Optional
@@ -42,32 +41,6 @@ def calculate_dtw_matrix(
         "n": n,
         "matrix": result
     }
-
-
-def convert_dynamics(dynamics: list[str], metadata: dict) -> list[float]:
-    mf_val = metadata["mfValue"]
-    dyn_step = metadata["dynamicStep"]
-    map = {
-        "ppp": mf_val - (4 * dyn_step), "pp": mf_val - (3 * dyn_step),
-        "p": mf_val - (2 * dyn_step), "mp": mf_val - dyn_step,
-        "mf": mf_val, "f": mf_val + dyn_step,
-        "ff": mf_val + (2 * dyn_step), "fff": mf_val + (3 * dyn_step)
-    }
-    result = []
-    for d in dynamics:
-        if d == "extreme":
-            result.append(0.0)
-            continue
-
-        if re.match(r"^-?\d+(\.\d+)?$", d.strip()):
-            result.append(abs(float(d)))
-            continue
-
-        m = re.match(r"^([a-z]+)([+-]\d+)?$", d, re.IGNORECASE)
-        base = map.get(m.group(1), 0.0) if m else 0.0
-        off = float(m.group(2)) if m and m.group(2) else 0.0
-        result.append(abs(base + off))
-    return result
 
 
 def normalize_series(values: list, kind: Literal["tempo", "dynamics", "timbre"], reference: dict) -> np.ndarray:

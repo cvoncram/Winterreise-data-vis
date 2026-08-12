@@ -6,8 +6,7 @@ from pathlib import Path
 from typing import Optional
 
 from services.githubClient import fetch_repo_tree, fetch_repo_text
-from services.meiParser import parse_rows, parse_mei_metadata
-from services.dtwCalc import convert_dynamics
+from services.meiParser import parse_rows
 
 CACHE_DIR = Path(__file__).resolve().parent.parent / "cache"
 CACHE_FILE = CACHE_DIR / "performance_stats.json"
@@ -73,25 +72,18 @@ def _std_from_sum_stats(stats_list: list[dict]) -> Optional[float]:
     return math.sqrt(variance)
 
 
-def _fetch_piece_values(path: str) -> Optional[dict]:
-    xml = fetch_repo_text(path)
-    rows = parse_rows(xml)
-    metadata = parse_mei_metadata(xml)
-    if metadata is None:
-        # Missing calibration block (older-pipeline file) — leave this
-        # piece unprocessed for now rather than crashing the whole
-        # recompute; it'll be retried on future calls until the data (or
-        # its fileSha) changes.
-        return None
+def _fetch_piece_values(path: str) -> dict:
+    """
+    Fetch and parse one piece's raw measurement series.
 
-    # Existing abs-valued, categorical-aware conversion — used only for the
-    # pre-existing display median (statsCalc's original feature).
-    dynamics_values_abs = convert_dynamics(
-        [r["dynamics"] for r in rows if r["dynamics"] is not None], metadata
-    )
-    # Raw signed dynamics value (the `n` attribute is numeric for normal
-    # beats, but can still be "extreme" or "" for edge-case markings — those
-    # are skipped here, same as they fall through to 0.0 in convert_dynamics).
+    Note that no calibration metadata is needed: the statistical
+    normalization derives its reference from the value distribution itself,
+    so files predating the calibration block are processed like any other.
+    """
+    rows = parse_rows(fetch_repo_text(path))
+
+    # The `n` attribute is numeric for normal beats but can be "extreme" or
+    # "" for edge-case markings; those are skipped.
     dynamics_values_signed = []
     for r in rows:
         if r["dynamics"] is None:
@@ -100,14 +92,11 @@ def _fetch_piece_values(path: str) -> Optional[dict]:
             dynamics_values_signed.append(float(r["dynamics"]))
         except ValueError:
             continue
-    timbre_values = [r["timbre"] for r in rows if r["timbre"] is not None]
-    tempo_values = [r["tempo"] for r in rows if r["tempo"] is not None]
 
     return {
-        "dynamicsValuesAbs": dynamics_values_abs,
         "dynamicsValuesSigned": dynamics_values_signed,
-        "timbreValues": timbre_values,
-        "tempoValues": tempo_values,
+        "timbreValues": [r["timbre"] for r in rows if r["timbre"] is not None],
+        "tempoValues": [r["tempo"] for r in rows if r["tempo"] is not None],
     }
 
 
@@ -150,29 +139,22 @@ def recompute_stats() -> dict:
 
     # Pass 2: for touched performances, fetch every one of their pieces once
     # to recompute per-piece stats, then performance-level overall stats.
-    skipped = []
     for performance_name in touched_performances:
         perf_entry = performances[performance_name]
         fetched: dict[str, dict] = {}
-        all_dynamics_abs = []
         all_dynamics_signed = []
         all_timbre = []
 
         for piece_num, path, sha in current_by_performance[performance_name]:
             values = _fetch_piece_values(path)
-            if values is None:
-                skipped.append({"performance": performance_name, "piece": piece_num})
-                continue
             fetched[piece_num] = values
             perf_entry["pieces"][piece_num] = {
                 "fileSha": sha,
-                "dynamicsMedian": _median(values["dynamicsValuesAbs"]),
                 "dynamicsMedianSigned": _median(values["dynamicsValuesSigned"]),
                 "timbreMedian": _median(values["timbreValues"]),
                 "tempoMedian": _median(values["tempoValues"]),
                 "tempoValues": values["tempoValues"],
             }
-            all_dynamics_abs.extend(values["dynamicsValuesAbs"])
             all_dynamics_signed.extend(values["dynamicsValuesSigned"])
             all_timbre.extend(values["timbreValues"])
 
@@ -183,7 +165,6 @@ def recompute_stats() -> dict:
         )
 
         perf_entry["overall"] = {
-            "dynamicsMedian": _median(all_dynamics_abs),
             "dynamicsMedianSigned": overall_dynamics_median_signed,
             "timbreMedian": overall_timbre_median,
         }
@@ -263,8 +244,6 @@ def recompute_stats() -> dict:
         "recomputedPieces": len(recomputed),
         "recomputedPerformances": sorted(touched_performances),
         "details": recomputed,
-        "skippedPieces": len(skipped),
-        "skippedDetails": skipped,
     }
 
 
@@ -274,12 +253,12 @@ def get_stats_summary() -> dict:
     for performance_name, perf_entry in stats.get("performances", {}).items():
         result[performance_name] = {
             "overall": {
-                "dynamicsMedian": perf_entry.get("overall", {}).get("dynamicsMedian"),
+                "dynamicsMedian": perf_entry.get("overall", {}).get("dynamicsMedianSigned"),
                 "timbreMedian": perf_entry.get("overall", {}).get("timbreMedian"),
             },
             "pieces": {
                 piece_num: {
-                    "dynamicsMedian": piece.get("dynamicsMedian"),
+                    "dynamicsMedian": piece.get("dynamicsMedianSigned"),
                     "timbreMedian": piece.get("timbreMedian"),
                 }
                 for piece_num, piece in perf_entry.get("pieces", {}).items()
