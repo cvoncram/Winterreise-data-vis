@@ -19,8 +19,15 @@ export type PerformanceMetadata = {
 };
 
 export type NormalizationReference = {
-    dynamics: { median: number | null; std: number | null };
-    timbre: { logMedian: number | null; std: number | null };
+    /** `scale` is a corpus-wide scaled median absolute deviation. */
+    dynamics: { median: number | null; scale: number | null };
+    timbre: { logMedian: number | null; scale: number | null };
+    /**
+     * False when a figure could not be resolved — the visualization then
+     * falls back to neutral values rather than showing normalized ones.
+     * Not surfaced in the UI yet.
+     */
+    available?: boolean;
 };
 
 export type Parameter = 

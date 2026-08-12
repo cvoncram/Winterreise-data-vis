@@ -53,17 +53,17 @@ def normalize_series(values: list, kind: Literal["tempo", "dynamics", "timbre"],
     """
     if kind == "dynamics":
         median = reference.get("median")
-        std = reference.get("std")
+        scale = reference.get("scale")
         transformed = [float(v) for v in values]
     else:
         median = reference.get("logMedian")
-        std = reference.get("std")
+        scale = reference.get("scale")
         transformed = [math.log(float(v)) for v in values if float(v) > 0]
 
-    if median is None or not std:
+    if median is None or not scale:
         return np.array(transformed, dtype=np.float64)
 
-    return np.array([(v - median) / std for v in transformed], dtype=np.float64)
+    return np.array([(v - median) / scale for v in transformed], dtype=np.float64)
 
 
 def _pairwise_cost_matrix(

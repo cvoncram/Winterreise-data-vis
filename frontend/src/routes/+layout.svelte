@@ -6,8 +6,6 @@
 
 	let { children } = $props();
 
-    export const ssr = false;
-
 	const baseTitle = "MEI Visualization";
 	const title = $derived(
 		page.data.title ? `${page.data.title} | ${baseTitle}` : baseTitle
