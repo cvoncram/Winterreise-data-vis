@@ -40,7 +40,6 @@
             })
             );
             pageState.graphPerformances = results.map(r => r[1].data);
-            pageState.graphMetadata = results.map(r => r[0].metadata);
             pageState.showGraph = true;
         } catch (e: any) {
             error = e.message;
@@ -83,7 +82,7 @@
                 <span class="loading loading-spinner loading-lg"></span>
             </div>
             {:else if pageState.showGraph}
-            <LineGraph performances={pageState.graphPerformances} parameter={pageState.selectedParameter} metadata={pageState.graphMetadata} />
+            <LineGraph performances={pageState.graphPerformances} parameter={pageState.selectedParameter} />
             {:else}
             <div style="background-color: rgba(254, 255, 223, .2)" class="flex items-center justify-center w-full h-[80vh] rounded-lg">
                 <p class="text-base-content opacity-50">Select a piece, parameter and performances, then click Generate Graph</p>

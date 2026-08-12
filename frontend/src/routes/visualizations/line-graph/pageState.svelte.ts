@@ -1,4 +1,4 @@
-import type { SongInfo, CyclePerformance, Parameter, PerformanceRow, PerformanceMetadata } from "$lib/types";
+import type { SongInfo, CyclePerformance, Parameter, PerformanceRow } from "$lib/types";
 
 export const lineGraphPageState = $state({
 	allPerformances: [] as CyclePerformance[],
@@ -7,6 +7,5 @@ export const lineGraphPageState = $state({
 	selectedPiece: null as SongInfo | null,
 	selectedParameter: "tempo" as Parameter,
 	graphPerformances: [] as PerformanceRow[][],
-	graphMetadata: [] as PerformanceMetadata[],
 	showGraph: false
 });

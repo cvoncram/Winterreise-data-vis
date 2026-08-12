@@ -2,7 +2,7 @@
     import { tick } from "svelte";
     import * as d3 from "d3";
     import { goto } from "$app/navigation";
-    import { selectedMeasuresStore, selectedPieceStore, startMeasure, startBeat, endMeasure, endBeat } from "$lib/stores/selection";
+    import { selection } from "$lib/selection.svelte";
     import { applyColorScheme, computeDynamicsUnit, computeTimbreUnit } from "$lib/utils/performanceVisuals";
 
     import type {
@@ -191,16 +191,16 @@
             <button                 
                 class="btn btn-block btn-secondary mt-3"
                 onclick={() => {
-                    selectedMeasuresStore.set(selectedMeasures);
+                    selection.measures = selectedMeasures;
                     const[startFirst, startSecond] = selectedMeasures[0].measure.split(".").map(Number);
-                    startMeasure.set(startFirst);
-                    startBeat.set(startSecond);
+                    selection.startMeasure = startFirst;
+                    selection.startBeat = startSecond;
                     const[endFirst, endSecond] = selectedMeasures[selectedMeasures.length-1].measure.split(".").map(Number);
-                    endMeasure.set(endFirst);
-                    endBeat.set(endSecond);
+                    selection.endMeasure = endFirst;
+                    selection.endBeat = endSecond;
                     if (metadata) {
-                        selectedPieceStore.set(metadata)
-                    };
+                        selection.metadata = metadata;
+                    }
                     goto("multi-parameter/multi-performance")
                 }}>Compare with other performances</button>
 

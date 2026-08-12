@@ -1,17 +1,16 @@
 <script lang="ts">
-    import { get } from "svelte/store";
     import { onMount } from "svelte";
     import MeiLinearRibbon from '$lib/components/containers/MeiLinearRibbon.svelte';
     import MultiplePerformancesSelector from '$lib/components/partials/MultiplePerformancesSelector.svelte';
     import ColorSchemeSelector from '$lib/components/partials/ColorSchemeSelector.svelte';
     import type { PerformanceRow, PerformanceMetadata, NormalizationReference, CyclePerformance } from '$lib/types';
-    import { selectedMeasuresStore, selectedPieceStore, selectedPiecePath, startMeasure, startBeat, endMeasure, endBeat } from "$lib/stores/selection";
+    import { selection } from "$lib/selection.svelte";
 	import MeiViewer from "$lib/components/containers/MeiViewer.svelte";
     import { fetchNormalizationReference } from "$lib/api";
     import { multiPerformancePageState as pageState } from "./pageState.svelte";
 
     const nbInOrder = (() => {
-        const piecePathSplit = get(selectedPiecePath).split("_");
+        const piecePathSplit = selection.piecePath.split("_");
         return Number(piecePathSplit[piecePathSplit.length - 3]) ?? 0
     });
 
@@ -19,7 +18,7 @@
     let loading = $state(false);
 
     function applySelection() {
-        const fullPath = get(selectedPiecePath);
+        const fullPath = selection.piecePath;
         const folderName = fullPath.split("/")[1];
         const matchingPerf = pageState.allPerformances.find(p => p.path === folderName);
 
@@ -28,8 +27,8 @@
         pageState.selectedPerformances = [{
             path: folderName,
             label: matchingPerf?.label ?? folderName,
-            metadata: get(selectedPieceStore),
-            songPerformances: [{ song: null, rows: get(selectedMeasuresStore) }]
+            metadata: selection.metadata,
+            songPerformances: [{ song: null, rows: selection.measures }]
         }];
 
         // Non-blocking: enrich the locked performance once the reference
@@ -48,7 +47,7 @@
         pageState.showScore = !pageState.showScore;
         if (pageState.showScore) {
             try {
-                const scoreRes = await fetch(`/db/file-measures?piece=${nbInOrder()}&start=${get(startMeasure)}&end=${get(endMeasure)}`)
+                const scoreRes = await fetch(`/db/file-measures?piece=${nbInOrder()}&start=${selection.startMeasure}&end=${selection.endMeasure}`)
                 pageState.score = await scoreRes.text();
 
             } catch (e:any) {
@@ -80,7 +79,7 @@
         // genuinely new "Compare with other performances" selection (or
         // this is the first-ever visit) — otherwise leave the restored
         // selectedPerformances/lockedPath alone.
-        const currentFolderName = get(selectedPiecePath).split("/")[1];
+        const currentFolderName = selection.piecePath.split("/")[1];
         if (!pageState.lockedPath || pageState.lockedPath !== currentFolderName) {
             applySelection();
         }
@@ -91,10 +90,10 @@
 
         try {
             const piece = nbInOrder();
-            const sM = get(startMeasure);
-            const sB = get(startBeat);
-            const eM = get(endMeasure);
-            const eB = get(endBeat);
+            const sM = selection.startMeasure;
+            const sB = selection.startBeat;
+            const eM = selection.endMeasure;
+            const eB = selection.endBeat;
 
             const params = new URLSearchParams();
             params.set("piece", String(piece));

@@ -6,7 +6,7 @@
     import MeiCircularRibbon from '$lib/components/containers/MeiCircularRibbon.svelte';
     import ColorSchemeSelector from '$lib/components/partials/ColorSchemeSelector.svelte';
     import type { SongInfo, CyclePerformance } from '$lib/types';
-    import { selectedPiecePath } from "$lib/stores/selection";
+    import { selection } from "$lib/selection.svelte";
     import { fetchNormalizationReference } from "$lib/api";
     import { multiParameterPageState as pageState } from "./pageState.svelte";
 
@@ -74,7 +74,7 @@
         } finally {
             loading = false;
         }
-        selectedPiecePath.set(piece.path);
+        selection.piecePath = piece.path;
 
     }
 </script>

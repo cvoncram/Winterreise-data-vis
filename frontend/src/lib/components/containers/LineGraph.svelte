@@ -1,36 +1,12 @@
 <script lang="ts">
-	import type { PerformanceRow, PerformanceMetadata } from "$lib/types";
+	import type { PerformanceRow } from "$lib/types";
     import * as d3 from "d3";
 
-    let {performances, parameter, metadata}: {
-        performances: PerformanceRow[][], parameter: string; metadata: PerformanceMetadata[]
+    let {performances, parameter}: {
+        performances: PerformanceRow[][], parameter: string
     } = $props();
 
     type Point = { measure: string; value: number };
-
-    // only temporary, until the backend returns dyn values
-    function convertDynamics(data: string[], index: number) {
-        if (!metadata) return [];
-        let numVals: number[] = [];
-        const mfVal = metadata[index].mfValue;
-        const dynStep = metadata[index].dynamicStep;
-        const map: Record<string, number> = { ppp:mfVal-(4*dynStep), pp:mfVal-(3*dynStep), p:mfVal-(2*dynStep), mp:mfVal-dynStep,
-            mf:mfVal, f:mfVal+dynStep, ff:mfVal+(2*dynStep), fff:mfVal+(3*dynStep) };
-
-        for (let i=0; i < data.length; i++) {
-            if (data[i] == "extreme"){
-                numVals[i] = 0;
-            } else if (/^-?\d+(\.\d+)?$/.test(data[i].trim())) {
-                numVals[i] = Math.abs(parseFloat(data[i]));
-            } else {
-                const m = data[i].match(/^([a-z]+)([+-]\d+)?$/i);
-                const base = map[m?.[1] ?? ""] ?? 0;
-                const off = m?.[2] ? Number(m[2]) : 0;
-                numVals[i] = Math.abs(base + off);
-            }
-        }
-        return numVals;
-    }
 
     // Filters out null values while keeping each value paired with its
     // originating measure, so lines stay aligned to the shared x-axis even
@@ -44,12 +20,16 @@
                     .map(r => ({ measure: r.measure, value: r[key] as number }))
             );
         }
-        // dynamics
-        return performances.map((p, i) => {
-            const withDyn = p.filter(r => r.dynamics !== null);
-            const values = convertDynamics(withDyn.map(r => r.dynamics), i);
-            return withDyn.map((r, j) => ({ measure: r.measure, value: values[j] }));
-        });
+        // Dynamics arrives as a string: numeric for normal beats, but
+        // occasionally "extreme" or empty. Those are dropped rather than
+        // coerced, so the raw signed dB value is plotted as measured —
+        // louder beats sit higher on the axis.
+        return performances.map(p =>
+            p
+                .filter(r => r.dynamics !== null)
+                .map(r => ({ measure: r.measure, value: parseFloat(r.dynamics) }))
+                .filter(d => !Number.isNaN(d.value))
+        );
     }
 
     function createLineGraph(performances: PerformanceRow[][], parameter: string) {
@@ -80,10 +60,13 @@
             .range([0, width]);
 
         const series = extractSeries(performances, parameter);
-        const maxVal = Math.max(...series.flat().map(d => d.value));
+
+        // Spans the observed range rather than starting at zero: dynamics is
+        // measured in negative dB, where a zero-based axis would be empty.
+        const [lo, hi] = d3.extent(series.flat(), d => d.value) as [number, number];
 
         const y = d3.scaleLinear()
-            .domain([0, maxVal])
+            .domain([lo, hi]).nice()
             .range([height, 0]);
 
         g.append("g")
