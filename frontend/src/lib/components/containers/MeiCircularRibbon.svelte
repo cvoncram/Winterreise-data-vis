@@ -3,6 +3,7 @@
     import * as d3 from "d3";
     import { goto } from "$app/navigation";
     import { selection } from "$lib/selection.svelte";
+    import { morph } from "$lib/ribbonMorph.svelte";
     import { applyColorScheme, computeDynamicsUnit, computeTimbreUnit } from "$lib/utils/performanceVisuals";
 
     import type {
@@ -122,6 +123,51 @@
             });
     }
 
+    /**
+     * Hand the currently selected beats to the morph overlay before
+     * navigating: this component is destroyed by the page change, so both the
+     * segments and their on-screen position have to be captured first.
+     *
+     * Only the selected range is passed, since that is what the target page
+     * will show.
+     */
+    function captureForMorph() {
+        if (!svg || selectedMeasures.length === 0) return;
+
+        const selectedIds = new Set(selectedMeasures.map(r => r.measure));
+        const segments = visualData
+            .filter(d => selectedIds.has(d.data.measure))
+            .map(d => ({
+                startAngle: d.startAngle,
+                endAngle: d.endAngle,
+                thickness: d.thickness,
+                color: d.color
+            }));
+        if (segments.length === 0) return;
+
+        // Re-span the captured slice across the full semicircle, matching how
+        // the target page lays out the same beats on their own axis.
+        const first = segments[0].startAngle;
+        const span = segments[segments.length - 1].endAngle - first;
+        if (span > 0) {
+            for (const s of segments) {
+                s.startAngle = -Math.PI / 2 + ((s.startAngle - first) / span) * Math.PI;
+                s.endAngle = -Math.PI / 2 + ((s.endAngle - first) / span) * Math.PI;
+            }
+        }
+
+        const box = svg.getBoundingClientRect();
+        morph.segments = segments;
+        morph.from = {
+            cx: box.left + box.width / 2,
+            cy: box.top + box.height / 1.05,
+            radius: Math.min(box.width, box.height) / 1.05
+        };
+        morph.to = null;
+        morph.t = 0;
+        morph.active = true;
+    }
+
     function attachContainer(node: HTMLDivElement) {
         const resizeObserver = new ResizeObserver(() => {
             width = node.clientWidth;
@@ -191,6 +237,7 @@
             <button                 
                 class="btn btn-block btn-secondary mt-3"
                 onclick={() => {
+                    captureForMorph();
                     selection.measures = selectedMeasures;
                     const[startFirst, startSecond] = selectedMeasures[0].measure.split(".").map(Number);
                     selection.startMeasure = startFirst;
@@ -201,6 +248,8 @@
                     if (metadata) {
                         selection.metadata = metadata;
                     }
+                    selection.normalizationReference = normalizationReference;
+                    selection.pending = true;
                     goto("multi-parameter/multi-performance")
                 }}>Compare with other performances</button>
 

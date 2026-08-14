@@ -3,8 +3,10 @@
     import type { PerformanceRow, PerformanceMetadata, NormalizationReference } from "$lib/types";
     import { applyColorScheme, computeDynamicsUnit, computeTimbreUnit } from "$lib/utils/performanceVisuals";
 
-    let { displayedRows = $bindable([]), metadata, normalizationReference = null, selectedColorDropdown = $bindable("viridisScheme"), selectedRowAll = $bindable(false), selectedRowTarget = $bindable(null) }:
-        { displayedRows? : PerformanceRow[]; metadata: PerformanceMetadata | null; normalizationReference?: NormalizationReference | null; selectedColorDropdown?: string; selectedRowAll: boolean; selectedRowTarget: string | null } = $props();
+    let { displayedRows = $bindable([]), metadata, normalizationReference = null, selectedColorDropdown = $bindable("viridisScheme"), selectedRowAll = $bindable(false), selectedRowTarget = $bindable(null), maxDuration = 0 }:
+        { displayedRows? : PerformanceRow[]; metadata: PerformanceMetadata | null; normalizationReference?: NormalizationReference | null; selectedColorDropdown?: string; selectedRowAll: boolean; selectedRowTarget: string | null;
+          /** Longest duration among all displayed ribbons, in seconds; sets the shared horizontal extent. */
+          maxDuration?: number } = $props();
 
     let selectedRow = $state<PerformanceRow | null>(null);
 
@@ -15,32 +17,39 @@
     const marginBottom = 30;
     const marginLeft = 40;
 
+    // Bar length maps a [0,1] unit value through 0.5 + 2u, so the range is
+    // fixed by construction. Using it as the domain keeps every ribbon on the
+    // same vertical scale instead of normalising each to its own maximum.
+    const LENGTH_MAX = 2.5;
+
     let visualData = $derived.by(() => {
         if (!metadata || !displayedRows.length) return [];
 
         const dyn = computeDynamicsUnit(displayedRows, normalizationReference);
         const timbreUnit = computeTimbreUnit(displayedRows, normalizationReference);
 
-        const tempoSum = d3.sum(displayedRows, d => d.tempo) ?? 0;
-
-        let currentX = 0;
+        // Positions are accumulated in seconds, not pixels — the scale below
+        // turns them into pixels against a shared extent.
+        let elapsed = 0;
 
         return displayedRows.map((d, i) => {
-            const barWidth = ((1 / d.tempo) / d3.sum(displayedRows, d => 1 / d.tempo)) * width;
-            const x0: number = currentX;
-            const x1: number = x0 + barWidth;
-            currentX = x1;
+            const t0 = elapsed;
+            elapsed += d.tempo ? 60 / d.tempo : 0;
 
             return {
                 index: i,
                 color: applyColorScheme(selectedColorDropdown, timbreUnit[i] ?? 0.5),
                 length: 0.5 + (dyn[i] ?? 0.5) * 2,
-                width: d.tempo / tempoSum,
-                x0,
-                x1
+                t0,
+                t1: elapsed
             };
         });
     });
+
+    /** Falls back to this ribbon's own duration when no shared extent is given. */
+    let extent = $derived(
+        maxDuration > 0 ? maxDuration : (visualData.at(-1)?.t1 ?? 0)
+    );
 
     function attachGraph(container: HTMLDivElement) {
         $effect(() => {
@@ -48,15 +57,16 @@
 
             container.innerHTML = '';
 
+            // Both scales are shared across ribbons rather than fitted to each
+            // one: horizontally via the longest performance, vertically via the
+            // fixed range of the length mapping. Only then are two stacked
+            // ribbons actually comparable.
             const x = d3.scaleLinear()
-                .domain([
-                    d3.min(visualData, d => d.x0) ?? 0,
-                    d3.max(visualData, d => d.x1) ?? 0
-                ])
+                .domain([0, extent])
                 .range([marginLeft, width - marginRight]);
 
             const y = d3.scaleLinear()
-                .domain([0, d3.max(visualData, d => d.length ?? 0) ?? 0]).nice()
+                .domain([0, LENGTH_MAX])
                 .range([height - marginBottom, marginTop]);
 
             const svg = d3.create("svg")
@@ -73,8 +83,8 @@
                 .selectAll("rect")
                 .data(visualData)
                 .join("rect")
-                .attr("x", d => x(d.x0))
-                .attr("width", d => x(d.x1) - x(d.x0))
+                .attr("x", d => x(d.t0))
+                .attr("width", d => x(d.t1) - x(d.t0))
                 .attr("y", d => y(d.length))
                 .attr("height", d => y(0) - y(d.length))
                 .attr("fill", d => d.color)
@@ -90,9 +100,12 @@
 
                 });
 
+            // Now that positions are in seconds, the axis can actually be
+            // labelled — previously this group was created but left empty.
             svg.append("g")
                 .attr("class", "x-axis")
-                .attr("transform", `translate(0,${height - marginBottom})`);
+                .attr("transform", `translate(0,${height - marginBottom})`)
+                .call(d3.axisBottom(x).ticks(8).tickFormat(d => `${d}s`));
 
             container.appendChild(svg.node()!);
         });
