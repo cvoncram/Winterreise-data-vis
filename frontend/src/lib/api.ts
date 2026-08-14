@@ -38,8 +38,7 @@ export type DtwScope = 'piece' | 'cycle' | 'halfCycle' | 'measures';
 export type DtwMetric = 'euclidean' | 'mahalanobis';
 
 export interface DtwAnalysisParams {
-	parameter?: string;
-	parameters?: string[];
+	parameters: string[];
 	metric?: DtwMetric;
 	weights?: number[];
 	paths: string[];
@@ -53,25 +52,28 @@ export interface DtwAnalysisParams {
 }
 
 export interface DtwAnalysisResult {
-	parameter?: string;
-	parameters?: string[];
+	parameters: string[];
 	metric?: DtwMetric;
 	weights?: number[] | null;
 	piece: number | null;
 	n: number;
-	matrix: number[][];
+	/**
+	 * Accumulated distance; grows with the number of beats, so only comparable
+	 * within one request. `null` where the pair was refused — see `warnings`.
+	 */
+	matrix: (number | null)[][];
+	/** Distance per beat compared — comparable across pieces and scopes. */
+	normalizedMatrix: (number | null)[][];
+	/** Pairs that could not be compared, with the reason. */
+	warnings: { i: number; j: number; performances: string[]; reasons: string[] }[];
 	scope: DtwScope;
 }
 
 export async function runDtwAnalysis(params: DtwAnalysisParams): Promise<DtwAnalysisResult> {
 	const search = new URLSearchParams();
-	if (params.parameters?.length) {
-		params.parameters.forEach((p) => search.append('parameters', p));
-		if (params.metric) search.set('metric', params.metric);
-		if (params.weights) params.weights.forEach((w) => search.append('weights', String(w)));
-	} else if (params.parameter) {
-		search.set('parameter', params.parameter);
-	}
+	params.parameters.forEach((p) => search.append('parameters', p));
+	if (params.metric) search.set('metric', params.metric);
+	if (params.weights) params.weights.forEach((w) => search.append('weights', String(w)));
 	search.set('scope', params.scope);
 	if (params.piece !== undefined) search.set('piece', String(params.piece));
 	if (params.half !== undefined) search.set('half', String(params.half));

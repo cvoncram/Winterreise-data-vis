@@ -5,9 +5,40 @@
     import ColorSchemeSelector from '$lib/components/partials/ColorSchemeSelector.svelte';
     import type { PerformanceRow, PerformanceMetadata, NormalizationReference, CyclePerformance } from '$lib/types';
     import { selection } from "$lib/selection.svelte";
+    import { display } from "$lib/displaySettings.svelte";
 	import MeiViewer from "$lib/components/containers/MeiViewer.svelte";
+    import { tick } from "svelte";
     import { fetchNormalizationReference } from "$lib/api";
+    import { totalDuration } from "$lib/utils/performanceVisuals";
+    import { morph } from "$lib/ribbonMorph.svelte";
     import { multiPerformancePageState as pageState } from "./pageState.svelte";
+
+    let ribbonList: HTMLDivElement | undefined = $state();
+
+    /**
+     * Report where the first ribbon ended up, which is what starts the morph.
+     * The rows come from `selection` synchronously, so the ribbon is already
+     * rendered by the time this runs — no waiting on a fetch.
+     */
+    $effect(() => {
+        if (!morph.active || morph.to || !ribbonList) return;
+        void pageState.selectedPerformances.length;
+
+        tick().then(() => {
+            const svg = ribbonList?.querySelector("svg");
+            if (svg) morph.to = svg.getBoundingClientRect();
+        });
+    });
+
+    // Shared horizontal extent for all ribbons: the longest performance sets
+    // the scale, so a slower reading of the same passage appears wider.
+    // Recomputed over the whole selection rather than tracked incrementally,
+    // so that removing the longest performance shrinks the extent again.
+    let maxDuration = $derived(
+        Math.max(0, ...pageState.selectedPerformances.map(
+            p => totalDuration(p.songPerformances[0]?.rows ?? [])
+        ))
+    );
 
     const nbInOrder = (() => {
         const piecePathSplit = selection.piecePath.split("_");
@@ -28,12 +59,15 @@
             path: folderName,
             label: matchingPerf?.label ?? folderName,
             metadata: selection.metadata,
+            // Handed over by the circular ribbon, so the bars carry their
+            // final colours on the very first render.
+            normalizationReference: selection.normalizationReference ?? undefined,
             songPerformances: [{ song: null, rows: selection.measures }]
         }];
 
-        // Non-blocking: enrich the locked performance once the reference
-        // arrives, without delaying its (synchronous) selection/checkbox
-        // state above.
+        // Only needed if the source page never resolved a reference itself.
+        if (selection.normalizationReference) return;
+
         fetchNormalizationReference(folderName, nbInOrder())
             .then(normalizationReference => {
                 pageState.selectedPerformances = pageState.selectedPerformances.map(p =>
@@ -75,12 +109,11 @@
             console.error(e);
         }
 
-        // Only re-lock onto a new comparison baseline if we arrived via a
-        // genuinely new "Compare with other performances" selection (or
-        // this is the first-ever visit) — otherwise leave the restored
-        // selectedPerformances/lockedPath alone.
-        const currentFolderName = selection.piecePath.split("/")[1];
-        if (!pageState.lockedPath || pageState.lockedPath !== currentFolderName) {
+        // Re-initialise only when the user actually made a new selection.
+        // Arriving any other way — browser history, in-app navigation —
+        // leaves the retained selectedPerformances untouched.
+        if (selection.pending) {
+            selection.pending = false;
             applySelection();
         }
     });
@@ -143,7 +176,7 @@
                 results.forEach(r => fetchedMap.set(r.performance, r));
             }
 
-            pageState.selectedPerformances = newSelection.map(p => {
+            const resolved = newSelection.map(p => {
                 if (fetchedMap.has(p.path)) {
                     const r = fetchedMap.get(p.path)!;
                     return {
@@ -155,6 +188,15 @@
                 }
                 return existingMap.get(p.path) ?? p;
             });
+
+            // The selector hands back its own order, which is alphabetical by
+            // label — so adding an earlier name would push the locked
+            // performance down the list. It is the reference point of the
+            // comparison and stays on top.
+            pageState.selectedPerformances = [
+                ...resolved.filter(p => p.path === pageState.lockedPath),
+                ...resolved.filter(p => p.path !== pageState.lockedPath)
+            ];
 
         } catch (e) {
             console.error("ERROR in handlePerformancesChange:", e);
@@ -173,7 +215,7 @@
 
         <div class="bg-base-100 w-full p-4 rounded-lg shadow flex flex-col overflow-visible">
             <h2 class="card-title justify-center">Display options</h2>
-            <ColorSchemeSelector bind:selectedColorDropdown={pageState.selectedColorDropdown} />
+            <ColorSchemeSelector bind:selectedColorDropdown={display.colorScheme} />
 
         </div>
         <MultiplePerformancesSelector
@@ -212,16 +254,19 @@
     </aside>
 
     <main class="flex-1 flex gap-4 p-6 overflow-hidden">
-        <div class="w-[50%] overflow-auto">
+        <!-- The morph overlay stands in for the first ribbon until it lands. -->
+        <div class="w-[50%] overflow-auto" bind:this={ribbonList}
+             style:opacity={morph.active ? 0 : 1}>
             {#each pageState.selectedPerformances as performance (performance.path)}
                 <div class="relative w-full">{performance.label}</div>
                 <MeiLinearRibbon
-                    bind:selectedColorDropdown={pageState.selectedColorDropdown}
+                    bind:selectedColorDropdown={display.colorScheme}
                     displayedRows={performance.songPerformances[0]?.rows ?? []}
                     metadata={performance.metadata}
                     normalizationReference={performance.normalizationReference}
                     selectedRowAll={pageState.selectSameMeasure}
                     bind:selectedRowTarget={pageState.selectedRowTarget}
+                    {maxDuration}
                 />
             {/each}
             {#if loading}

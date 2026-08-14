@@ -10,6 +10,5 @@ export const multiParameterPageState = $state({
 	tableRows: [] as PerformanceRow[],
 	active: "visualization",
 	brushEnabled: false,
-	selectedColorDropdown: "viridisScheme",
 	displayedRows: [] as PerformanceRow[]
 });

@@ -16,6 +16,22 @@
     let error: string = $state("");
     let loading = $state(false);
 
+    /**
+     * Weights in the order of the selected parameters, normalized to sum to
+     * one. Returns undefined where weighting cannot take effect — a single
+     * parameter, or the Mahalanobis metric, which cancels it out — so the
+     * backend applies its equal-weight default instead.
+     */
+    function currentWeights(): number[] | undefined {
+        const params = pageState.selectedParameters;
+        if (params.length < 2 || pageState.selectedMetric !== "euclidean") return undefined;
+
+        const raw = params.map(p => pageState.parameterWeights[p] ?? 0);
+        const total = raw.reduce((sum, w) => sum + w, 0);
+        if (total === 0) return params.map(() => 1 / params.length);
+        return raw.map(w => w / total);
+    }
+
     async function selectPiece(piece: SongInfo) {
         pageState.selectedPiece = piece;
     }
@@ -33,6 +49,7 @@
             const result = await runDtwAnalysis({
                 parameters: pageState.selectedParameters,
                 metric: pageState.selectedMetric,
+                weights: currentWeights(),
                 paths: pageState.selectedPerformances.map(p => p.path),
                 scope: pageState.analysisScope,
                 piece: pageState.selectedPiece?.nbInOrder,
@@ -48,18 +65,30 @@
                 label: performance.label
             }));
 
+            // The normalized figure is an average per beat compared, so the
+            // number shown when a link is clicked keeps its meaning across
+            // pieces and scopes; the raw one grows with the beat count and
+            // would only be readable within a single request.
+            //
+            // A null entry means the backend refused the pair because the two
+            // recordings do not line up. Such a pair gets no edge — drawing one
+            // would assert a similarity that was never computed.
             const newLinks: { source: number; target: number; distance: number; }[] = [];
             for (let i = 0; i < result.n; i++) {
                 for (let j = i + 1; j < result.n; j++) {
-                    newLinks.push({
-                        source: i,
-                        target: j,
-                        distance: result.matrix[i][j]
-                    });
+                    const distance = result.normalizedMatrix[i][j];
+                    if (distance === null) continue;
+                    newLinks.push({ source: i, target: j, distance });
                 }
             }
             pageState.nodes = newNodes;
             pageState.links = newLinks;
+            pageState.warnings = (result.warnings ?? []).map(w => ({
+                pair: w.performances.map(p =>
+                    pageState.allPerformances.find(a => a.path === p)?.label ?? p
+                ),
+                reasons: w.reasons
+            }));
 
         } catch (e: any) {
             error = e.message;
@@ -100,13 +129,13 @@
 
                 <div class="card bg-base-200 p-4 shadow-md justify-start">
                     <ScoreSelector files={pageState.pieces} selectedFile={pageState.selectedPiece} onFileSelect={selectPiece} />
-                    <ParameterMultiSelector bind:selectedParameters={pageState.selectedParameters} />
+                    <ParameterMultiSelector bind:selectedParameters={pageState.selectedParameters} bind:weights={pageState.parameterWeights} metric={pageState.selectedMetric} />
                     <MetricSelector bind:selectedMetric={pageState.selectedMetric} />
                     <MultiplePerformancesSelector performances={pageState.allPerformances} selectedPerformances={pageState.selectedPerformances} onSelectionChange={handlePerformancesChange}/>
                 </div>
 
             {:else if pageState.analysisScope == "cycle"}
-                <ParameterMultiSelector bind:selectedParameters={pageState.selectedParameters} />
+                <ParameterMultiSelector bind:selectedParameters={pageState.selectedParameters} bind:weights={pageState.parameterWeights} metric={pageState.selectedMetric} />
                 <MetricSelector bind:selectedMetric={pageState.selectedMetric} />
                 <MultiplePerformancesSelector performances={pageState.allPerformances} selectedPerformances={pageState.selectedPerformances} onSelectionChange={handlePerformancesChange}/>
 
@@ -132,14 +161,14 @@
                         >Zweite Abtheilung (13-24)</button>
                     </div>
                 </div>
-                <ParameterMultiSelector bind:selectedParameters={pageState.selectedParameters} />
+                <ParameterMultiSelector bind:selectedParameters={pageState.selectedParameters} bind:weights={pageState.parameterWeights} metric={pageState.selectedMetric} />
                 <MetricSelector bind:selectedMetric={pageState.selectedMetric} />
                 <MultiplePerformancesSelector performances={pageState.allPerformances} selectedPerformances={pageState.selectedPerformances} onSelectionChange={handlePerformancesChange}/>
 
             {:else if pageState.analysisScope == "measures"}
                 <ScoreSelector files={pageState.pieces} selectedFile={pageState.selectedPiece} onFileSelect={selectPiece} />
                 <MeasureRangeInput bind:start={pageState.measureStart} bind:startBeat={pageState.measureStartBeat} bind:end={pageState.measureEnd} bind:endBeat={pageState.measureEndBeat} />
-                <ParameterMultiSelector bind:selectedParameters={pageState.selectedParameters} />
+                <ParameterMultiSelector bind:selectedParameters={pageState.selectedParameters} bind:weights={pageState.parameterWeights} metric={pageState.selectedMetric} />
                 <MetricSelector bind:selectedMetric={pageState.selectedMetric} />
                 <MultiplePerformancesSelector performances={pageState.allPerformances} selectedPerformances={pageState.selectedPerformances} onSelectionChange={handlePerformancesChange}/>
             {/if}
@@ -171,6 +200,24 @@
     </aside>
 
     <main class="flex-1 flex flex-col p-10 overflow-hidden">
+        {#if pageState.warnings.length > 0}
+            <div class="alert alert-warning mb-4 flex-col items-start">
+                <span class="font-semibold">
+                    {pageState.warnings.length}
+                    {pageState.warnings.length === 1 ? 'Paar wurde' : 'Paare wurden'}
+                    nicht verglichen — die Aufnahmen decken sich nicht.
+                </span>
+                <ul class="text-sm list-disc pl-5">
+                    {#each pageState.warnings as warning}
+                        <li>
+                            <span class="font-medium">{warning.pair.join(' / ')}:</span>
+                            {warning.reasons.join('; ')}
+                        </li>
+                    {/each}
+                </ul>
+            </div>
+        {/if}
+
         <div style="background-color: rgba(254, 255, 223, .2);" class="rounded-xl">
             {#if loading}
                 <div class="flex items-center justify-center w-full h-[80vh]">

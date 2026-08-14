@@ -3,7 +3,7 @@ import numpy as np
 import requests
 from fastapi import APIRouter, HTTPException, Query
 from services.meiParser import parse_rows, parse_mei_metadata
-from services.dtwCalc import calculate_dtw_matrix, combined_dtw_matrix, normalize_series
+from services.dtwCalc import combined_dtw_matrix, normalize_series
 from services.statsCalc import get_normalization_reference
 from services.pathSafety import is_safe_folder_name
 from services.githubClient import fetch_repo_text
@@ -28,8 +28,7 @@ def _rows_for_performance(
 @router.get("/db/analysis")
 def calculate_dtw(
     paths: list[str] = Query(...),
-    parameter: Optional[str] = None,
-    parameters: Optional[List[str]] = Query(None),
+    parameters: List[str] = Query(...),
     metric: Literal["euclidean", "mahalanobis"] = "euclidean",
     weights: Optional[List[float]] = Query(None),
     scope: Literal["piece", "cycle", "halfCycle", "measures"] = "piece",
@@ -40,9 +39,9 @@ def calculate_dtw(
     end: Optional[int] = None,
     end_beat: Optional[int] = None,
 ):
-    if not parameter and not parameters:
-        raise HTTPException(status_code=400, detail="parameter or parameters is required")
-    if parameters and weights is not None and len(weights) != len(parameters):
+    if not parameters:
+        raise HTTPException(status_code=400, detail="parameters is required")
+    if weights is not None and len(weights) != len(parameters):
         raise HTTPException(status_code=400, detail="weights must be the same length as parameters")
     for path in paths:
         if not is_safe_folder_name(path):
@@ -70,24 +69,24 @@ def calculate_dtw(
     # skipped rather than failing the whole request.
     skip_missing = scope in ("cycle", "halfCycle")
 
+    # Rows are kept per piece rather than concatenated: the alignment runs
+    # separately for each piece, so that it cannot run across the boundary
+    # between two songs.
     performances = []
     for path in paths:
-        all_rows = []
-        metadata = None
+        rows_by_piece = {}
         for p in pieces:
             try:
                 if scope == "measures":
-                    rows, piece_metadata = _rows_for_performance(path, p, start, start_beat, end, end_beat)
+                    rows, _ = _rows_for_performance(path, p, start, start_beat, end, end_beat)
                 else:
-                    rows, piece_metadata = _rows_for_performance(path, p)
+                    rows, _ = _rows_for_performance(path, p)
             except requests.exceptions.HTTPError as e:
                 if skip_missing and e.response is not None and e.response.status_code == 404:
                     continue
                 raise
-            all_rows.extend(rows)
-            if metadata is None:
-                metadata = piece_metadata
-        performances.append({"data": all_rows, "metadata": metadata})
+            rows_by_piece[p] = rows
+        performances.append(rows_by_piece)
 
     def _is_usable(r, kind: str) -> bool:
         value = r.get(kind)
@@ -100,11 +99,11 @@ def calculate_dtw(
                 return False
         return True
 
-    if parameters:
-        sequences = []
-        for path, perf in zip(paths, performances):
-            reference_by_kind = get_normalization_reference(path, piece, scope)
-            rows = perf["data"]
+    sequences = []
+    for path, rows_by_piece in zip(paths, performances):
+        reference_by_kind = get_normalization_reference(path, piece, scope)
+        by_piece = {}
+        for p, rows in rows_by_piece.items():
             selected_rows = [
                 r for r in rows if all(_is_usable(r, kind) for kind in parameters)
             ]
@@ -114,16 +113,21 @@ def calculate_dtw(
                 )
                 for kind in parameters
             ]
-            sequences.append(np.stack(dims, axis=1) if dims else np.empty((0, len(parameters))))
+            by_piece[p] = (
+                np.stack(dims, axis=1) if dims else np.empty((0, len(parameters)))
+            )
+        sequences.append(by_piece)
 
-        result = combined_dtw_matrix(sequences, metric, weights)
-        result["parameters"] = parameters
-        result["metric"] = metric
-        result["weights"] = weights
-        result["piece"] = piece
-        result["scope"] = scope
-        return result
+    result = combined_dtw_matrix(sequences, metric, weights)
 
-    result = calculate_dtw_matrix(parameter, piece, performances)
+    # Warnings carry positional indices; name the recordings so the message is
+    # readable without the caller having to map them back.
+    for warning in result["warnings"]:
+        warning["performances"] = [paths[warning["i"]], paths[warning["j"]]]
+
+    result["parameters"] = parameters
+    result["metric"] = metric
+    result["weights"] = weights
+    result["piece"] = piece
     result["scope"] = scope
     return result

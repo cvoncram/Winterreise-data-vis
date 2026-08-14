@@ -19,7 +19,11 @@ export type PerformanceMetadata = {
 };
 
 export type NormalizationReference = {
-    /** `scale` is a corpus-wide scaled median absolute deviation. */
+    /**
+     * `scale` is a scaled median absolute deviation, pooled across all
+     * recordings at the level the request asked for — within the piece when a
+     * single piece is shown, across the cycle otherwise.
+     */
     dynamics: { median: number | null; scale: number | null };
     timbre: { logMedian: number | null; scale: number | null };
     /**

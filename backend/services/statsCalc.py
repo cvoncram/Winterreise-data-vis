@@ -6,11 +6,18 @@ GitHub Action on every push that touches performance data. This module only
 reads the results, so no computation, caching of raw values or incremental
 invalidation happens here any more.
 
-Centering uses each recording's median (per piece for piece/measures scope,
-per recording overall for cycle/halfCycle scope); scaling uses a corpus-wide
-scaled median absolute deviation. Tempo is not centred per recording — a
-recording being generally faster is interpretive information, not a recording
-artefact — and therefore has a single corpus-wide reference.
+Both the centre and the scale follow the scope, since the two questions are
+different ones: within a single piece, only variation inside that piece is at
+stake, whereas across the cycle the differences between loud and quiet pieces
+belong to the comparison. Scales are scaled median absolute deviations, always
+pooled across all recordings so that one unit means the same everywhere.
+
+Dynamics and timbre are centred on the recording's own median, a generally
+louder or brighter recording being a matter of recording technique. Tempo is
+not: a recording being generally faster is interpretive information, so its
+centre comes from the corpus and is the same for every recording — which also
+means it cancels out of any comparison between two of them, leaving the scale
+as the only figure that affects a distance.
 """
 
 import json
@@ -79,34 +86,40 @@ def get_normalization_reference(performance: str, piece: Optional[str], scope: s
     `available` reports whether every figure could be resolved. A caller that
     proceeds without it still gets a usable result, but one computed on
     untransformed values — which is not otherwise distinguishable from a
-    regular result.
+    regular result. A piece missing from the corpus statistics therefore ends
+    up reported as unavailable rather than silently falling back to the
+    cycle-wide figures, which are on a different scale and would understate
+    every distance.
     """
     corpus = get_corpus_stats()
     recording = get_recording_stats(performance)
 
     if scope in ("piece", "measures"):
-        entry = recording.get("pieces", {}).get(str(piece), {})
-        dynamics_median = entry.get("dynamicsMedian")
-        # Already log-transformed by the pipeline — do not take the log again.
-        timbre_log_median = entry.get("timbreLogMedian")
-        dynamics_scale = corpus.get("dynamics", {}).get("madVsPiece")
-        timbre_scale = corpus.get("timbre", {}).get("madVsPiece")
-    else:  # cycle / halfCycle
-        overall = recording.get("overall", {})
-        dynamics_median = overall.get("dynamicsMedian")
-        timbre_log_median = overall.get("timbreLogMedian")
-        dynamics_scale = corpus.get("dynamics", {}).get("madVsPerformance")
-        timbre_scale = corpus.get("timbre", {}).get("madVsPerformance")
-
-    tempo_log_median = corpus.get("tempo", {}).get("logMedian")
-    tempo_scale = corpus.get("tempo", {}).get("mad")
+        medians = recording.get("pieces", {}).get(str(piece), {})
+        scales = corpus.get("pieces", {}).get(str(piece), {})
+    else:  # cycle / halfCycle — a half is close enough to the whole for the
+        # cycle-wide figures to apply, and has no reference of its own.
+        medians = recording.get("overall", {})
+        scales = corpus.get("cycle", {})
 
     reference = {
         # "scale" rather than "std": the divisor is a scaled median absolute
         # deviation, not a standard deviation.
-        "dynamics": {"median": dynamics_median, "scale": dynamics_scale},
-        "timbre": {"logMedian": timbre_log_median, "scale": timbre_scale},
-        "tempo": {"logMedian": tempo_log_median, "scale": tempo_scale},
+        "dynamics": {
+            "median": medians.get("dynamicsMedian"),
+            "scale": scales.get("dynamics", {}).get("mad"),
+        },
+        "timbre": {
+            # Already log-transformed by the pipeline — do not log it again.
+            "logMedian": medians.get("timbreLogMedian"),
+            "scale": scales.get("timbre", {}).get("mad"),
+        },
+        # Tempo takes its centre from the corpus as well, there being no
+        # recording-specific tempo median to apply.
+        "tempo": {
+            "logMedian": scales.get("tempo", {}).get("logMedian"),
+            "scale": scales.get("tempo", {}).get("mad"),
+        },
     }
     reference["available"] = all(
         v is not None

@@ -3,6 +3,7 @@
 	import { page } from "$app/state";
 	import Footer from "$lib/components/partials/Footer.svelte";
 	import Logo from "$lib/components/partials/Logo.svelte";
+	import RibbonMorph from "$lib/components/containers/RibbonMorph.svelte";
 
 	let { children } = $props();
 
@@ -32,6 +33,9 @@
 <main>
     {@render children()}
 </main>
+
+<!-- Sits outside the page content so it survives navigation. -->
+<RibbonMorph />
 
 <Footer />
 

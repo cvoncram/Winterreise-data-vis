@@ -7,6 +7,7 @@
     import ColorSchemeSelector from '$lib/components/partials/ColorSchemeSelector.svelte';
     import type { SongInfo, CyclePerformance } from '$lib/types';
     import { selection } from "$lib/selection.svelte";
+    import { display } from "$lib/displaySettings.svelte";
     import { fetchNormalizationReference } from "$lib/api";
     import { multiParameterPageState as pageState } from "./pageState.svelte";
 
@@ -133,7 +134,7 @@
             </div>
             <div class="bg-base-100 w-full p-4 rounded-lg shadow flex flex-col overflow-visible">
                 <h2 class="card-title justify-center">Display options</h2>
-                <ColorSchemeSelector bind:selectedColorDropdown={pageState.selectedColorDropdown} />
+                <ColorSchemeSelector bind:selectedColorDropdown={display.colorScheme} />
 
                 <button class={`btn btn-sm btn-block mt-4 ${pageState.brushEnabled ? "bg-base-300" : "btn-primary"}`}
                     onclick={() => {
@@ -192,7 +193,7 @@
                 <MeiCircularRibbon
                     bind:this = {chart}
                     bind:brushEnabled={pageState.brushEnabled}
-                    bind:selectedColorDropdown={pageState.selectedColorDropdown}
+                    bind:selectedColorDropdown={display.colorScheme}
                     bind:displayedRows={pageState.displayedRows}
                     metadata={pageState.metadata}
                     normalizationReference={pageState.normalizationReference}
