@@ -1,0 +1,15 @@
+# The one secret the system has. Excluded so it cannot end up in an image
+# layer; docker compose mounts it at run time instead, reading it from the
+# host rather than from this build context.
+*.pem
+
+venv/
+.venv/
+__pycache__/
+**/__pycache__/
+*.py[cod]
+cache/
+.env
+README.md
+Dockerfile
+.dockerignore

@@ -18,7 +18,11 @@ __pycache__/
 venv/
 backend/cache/
 backend/__pycache__/
-backend/winterreise-database-test.2026-02-09.private-key.pem
+
+# Private keys of the GitHub App. Deliberately a pattern and not the one file
+# name: a second machine uses a key of its own, whose name carries its own
+# date of issue, and a named exception would leave it committable.
+*.pem
 
 # ----------------------------
 # Node / Svelte frontend

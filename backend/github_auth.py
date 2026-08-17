@@ -1,17 +1,50 @@
-import time
 import calendar
+import os
+import time
 from pathlib import Path
+
 import jwt
 import requests
 
-APP_ID = "2827092"
-INSTALLATION_ID = "108972344"
-
 BASE_DIR = Path(__file__).resolve().parent
-PRIVATE_KEY_PATH = BASE_DIR / "winterreise-database-test.2026-02-09.private-key.pem"
 
-with open(PRIVATE_KEY_PATH, "r") as f:
-    PRIVATE_KEY = f.read()
+# Identifiers of the GitHub App, not secret in themselves. Overridable so the
+# application can be pointed at a different installation without editing code.
+APP_ID = os.getenv("GITHUB_APP_ID", "2827092")
+INSTALLATION_ID = os.getenv("GITHUB_INSTALLATION_ID", "108972344")
+
+DEFAULT_KEY_PATH = BASE_DIR / "winterreise-database-test.2026-02-09.private-key.pem"
+
+
+def _load_private_key() -> str:
+    """
+    The App's signing key — the one secret the system holds.
+
+    Read from a file whose location is configurable, so that a container can
+    have it mounted at run time and never carry it inside the image. Reading
+    it from an environment variable is supported as well, but the file is
+    preferable: environment variables are visible to anything that can inspect
+    the process, and they turn up in logs and crash reports.
+    """
+    key = os.getenv("GITHUB_PRIVATE_KEY")
+    if key:
+        # A PEM passed through the environment almost always arrives with its
+        # line breaks escaped.
+        return key.replace("\\n", "\n")
+
+    path = Path(os.getenv("GITHUB_PRIVATE_KEY_PATH", DEFAULT_KEY_PATH))
+    if not path.is_file():
+        raise RuntimeError(
+            f"No GitHub private key found at {path}. Either place the .pem "
+            f"there, point GITHUB_PRIVATE_KEY_PATH at it, or pass its contents "
+            f"in GITHUB_PRIVATE_KEY."
+        )
+    return path.read_text()
+
+
+# Loaded once at import: without it nothing can be fetched, so failing here is
+# preferable to failing on the first request.
+PRIVATE_KEY = _load_private_key()
 
 _cached_token = None
 _cached_token_expires_at = 0
