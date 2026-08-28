@@ -1,8 +1,6 @@
 from typing import List, Optional, Dict
 import xml.etree.ElementTree as ET
 from config import MEI_NS
-from fastapi import Response
-
 
 def parse_rows(
     xml: str,

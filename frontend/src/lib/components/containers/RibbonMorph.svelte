@@ -5,19 +5,8 @@
     import { morph, reset } from "$lib/ribbonMorph.svelte";
     import { segmentPath } from "$lib/utils/ribbonGeometry";
 
-    /**
-     * Draws a copy of the circular ribbon's segments over the whole viewport
-     * and stretches them into the linear layout.
-     *
-     * Mounted in the root layout so that it survives the navigation between
-     * the two pages — the source component is destroyed long before the
-     * target has rendered, so neither could host this itself.
-     */
-
     const DURATION = 0.8;
 
-    // GSAP tweens plain object properties, so the animated value lives here
-    // and is mirrored into reactive state on each frame.
     const tween = { t: 0 };
     let animation: ReturnType<typeof gsap.to> | null = null;
 
@@ -33,7 +22,6 @@
         reset();
     }
 
-    // Starts once the target page has reported where its ribbon ended up.
     $effect(() => {
         if (!morph.active || !morph.from || !morph.to || animation) return;
 
@@ -52,7 +40,6 @@
         });
     });
 
-    // Leaving mid-transition would strand the overlay on screen.
     beforeNavigate(() => {
         if (morph.active && animation) finish();
     });
@@ -84,6 +71,6 @@
         width: 100vw;
         height: 100vh;
         pointer-events: none;
-        z-index: 40; /* below the navbar (z-50), above page content */
+        z-index: 40;
     }
 </style>

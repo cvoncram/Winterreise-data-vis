@@ -10,6 +10,7 @@
 
     let error: string = $state("");
     let loading = $state(false);
+    let labels: string[] = $state([]);
 
     async function selectPiece(piece: SongInfo) {
         pageState.selectedPiece = piece;
@@ -28,16 +29,17 @@
         loading = true;
         try {
             const results = await Promise.all(
-            pageState.selectedPerformances.map(async (perf) => {
-                const folder = perf.path;
-                const fileNumber = pageState.selectedPiece!.nbInOrder;
-                const fileName = `${folder}/${folder.split('/').pop()}_${fileNumber}_Audio_Data.xml`;
-                return fetch(`/db/parsed-file?path=performances/${encodeURIComponent(fileName)}`)
-                .then(res => {
-                    if (!res.ok) throw new Error(`Could not fetch ${perf.label}`);
-                    return res.json();
-                });
-            })
+                pageState.selectedPerformances.map(async (perf) => {
+                    labels.push(perf.label);
+                    const folder = perf.path;
+                    const fileNumber = pageState.selectedPiece!.nbInOrder;
+                    const fileName = `${folder}/${folder.split('/').pop()}_${fileNumber}_Audio_Data.xml`;
+                    return fetch(`/db/parsed-file?path=performances/${encodeURIComponent(fileName)}`)
+                    .then(res => {
+                        if (!res.ok) throw new Error(`Could not fetch ${perf.label}`);
+                        return res.json();
+                    });
+                })
             );
             pageState.graphPerformances = results.map(r => r[1].data);
             pageState.showGraph = true;
@@ -82,7 +84,7 @@
                 <span class="loading loading-spinner loading-lg"></span>
             </div>
             {:else if pageState.showGraph}
-            <LineGraph performances={pageState.graphPerformances} parameter={pageState.selectedParameter} />
+            <LineGraph performances={pageState.graphPerformances} parameter={pageState.selectedParameter} labels={labels}/>
             {:else}
             <div style="background-color: rgba(254, 255, 223, .2)" class="flex items-center justify-center w-full h-[80vh] rounded-lg">
                 <p class="text-base-content opacity-50">Select a piece, parameter and performances, then click Generate Graph</p>

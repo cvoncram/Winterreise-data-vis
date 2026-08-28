@@ -19,25 +19,17 @@ export type PerformanceMetadata = {
 };
 
 export type NormalizationReference = {
-    /**
-     * `scale` is a scaled median absolute deviation, pooled across all
-     * recordings at the level the request asked for — within the piece when a
-     * single piece is shown, across the cycle otherwise.
-     */
     dynamics: { median: number | null; scale: number | null };
     timbre: { logMedian: number | null; scale: number | null };
-    /**
-     * False when a figure could not be resolved — the visualization then
-     * falls back to neutral values rather than showing normalized ones.
-     * Not surfaced in the UI yet.
-     */
     available?: boolean;
 };
 
-export type Parameter = 
-    keyof Pick<PerformanceRow, "tempo" | "dynamics" | "timbre">;
+export type Parameter = keyof Pick<PerformanceRow, "tempo" | "dynamics" | "timbre">;
+
+export type RecordingContext = "Recital" | "Studio" | "Radio Broadcast" | "TV Production";
 
 // entities
+
 export type Score = {
     song: SongInfo;
     meiData: string;
@@ -54,6 +46,17 @@ export type CyclePerformance = {
     normalizationReference?: NormalizationReference;
     path: string;
     label: string;
+}
+
+export type PerformanceDetailed = {
+    year: number;
+    date: string;
+    place: string;
+    placeAddendum: string;
+    coordinates: number[];
+    pianist: string;
+    recordingContext: RecordingContext;
+    misc: string
 }
 
 // analysis

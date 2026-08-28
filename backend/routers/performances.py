@@ -10,23 +10,22 @@ from config import PIECE_TITLES
 
 router = APIRouter()
 
+_MISSING = {"no value", "unknown", "unclear", "", " "}
+
 # -------------------------------
 # Helper functions
 # -------------------------------
 
 def _normalize(s: str) -> str:
     """
-    Normalize to NFC so accented characters compare equal regardless of
-    whether they arrived precomposed (e.g. macOS-typed text) or decomposed
-    (e.g. filenames created on HFS+/APFS) — both render identically but are
-    different byte/codepoint sequences otherwise.
+    Normalize to NFC so accented characters compare equal regardless of whether they arrived precomposed (e.g. macOS-typed text) or decomposed.
     """
     return unicodedata.normalize("NFC", s)
 
 
 def get_performances_json() -> list[dict]:
     """
-    Fetch and parse performances.json from the repo
+    Fetch and parse performances.json from the repo.
     """
     content = fetch_repo_text("performances/performances.json")
     return json.loads(content)
@@ -34,16 +33,7 @@ def get_performances_json() -> list[dict]:
 
 def _disambiguate_performance(folder_name: str, candidates: list[dict]) -> tuple[dict, bool]:
     """
-    Pick the performances.json row matching a recording folder, when
-    multiple rows share the same year/pianist. Narrows by city first; if
-    that's still ambiguous (same pianist, year, *and* city — e.g. two
-    recitals in the same city within one year), folders are named with a
-    trailing _A/_B/... suffix, earliest recording first, resolved here by
-    sorting the remaining candidates on "Date - Standardized".
-
-    Returns (matched_row, needs_date_qualifier) — the second value is True
-    when other candidates share the same pianist/year/city, so the caller
-    should distinguish the label further (e.g. by date).
+    Pick the performances.json row matching a recording folder, when multiple rows share the same year/pianist. 
     """
     if len(candidates) <= 1:
         return (candidates[0] if candidates else {}), False
@@ -66,30 +56,50 @@ def _disambiguate_performance(folder_name: str, candidates: list[dict]) -> tuple
 
     return remaining[0], True
 
+def _date_nice(day, month, year):
+    date = ""
+    if year not in _MISSING:
+        date += str(year)
+        if month not in _MISSING:
+            date = month + " " + date
+            if day not in _MISSING:
+                date = str(day) + " " + date
+            else:
+                date += " " + "(day unclear)"
+        else:
+            date += " " + "(day and month unclear)"
+    else:
+        date = "unclear"
+    return date
+
+def _name_nice(name: str) -> str:
+    last, _, first = name.partition(",")
+    return f"{first.strip()} {last.strip()}".strip()
+
+def _disentangle_coordinates(coords: str) -> list[float]:
+    latitude, _, longitude = coords.partition(",")
+    return (float(latitude.strip()), float(longitude.strip()))
+
 # -------------------------------
-# Endpoint 1: List all recordings
+# Endpoints
 # -------------------------------
 
 @router.get("/db/performances")
 def list_performances():
     """
-    Return a list of recording folders (recordings) in /performances,
-    enriched with info from performances.json for friendly labels.
+    Return a list of recording folders (recordings) in /performances, enriched with info from performances.json for labels.
     """
     r = fetch_repo_json("performances")
     r.raise_for_status()
     items = r.json()
 
-    # Only include directories (recordings)
     folders = [item["name"] for item in items if item["type"] == "dir"]
 
-    # Fetch performances.json metadata
     performances_json = get_performances_json()
 
     enriched = []
     for folder_name in folders:
-        # Try to find the matching metadata entry, disambiguating by city
-        # (and, if needed, recording date) if present
+
         normalized_folder_name = _normalize(folder_name)
         candidates = [
             p for p in performances_json
@@ -122,15 +132,10 @@ def list_performances():
 
     return sorted(enriched, key=lambda x: x["label"])
 
-# -------------------------------
-# Endpoint 2: List pieces inside a recording
-# -------------------------------
-
 @router.get("/db/performance-files")
 def list_performance_files(performance: str):
     """
-    Return all MEI files inside a recording folder, with friendly labels and order.
-    Filenames are assumed to follow: folder_name_number_audio_data.xml
+    Return all MEI files inside a recording folder, with friendly labels and order. Filenames are assumed to follow: folder_name_number_audio_data.xml
     """
     if not is_safe_folder_name(performance):
         raise HTTPException(status_code=400, detail="Invalid performance path")
@@ -146,11 +151,9 @@ def list_performance_files(performance: str):
         if item["type"] == "file" and item["name"].endswith(".xml"):
             filename = item["name"]
 
-            # Extract the piece number from the filename
             match = re.search(r"_(\d+)_", filename)
             piece_num = int(match.group(1)) if match else 0
 
-            # Create a nice label
             title = PIECE_TITLES[piece_num - 1] if 1 <= piece_num <= len(PIECE_TITLES) else filename
             label = f"{piece_num}. {title}"
 
@@ -161,6 +164,27 @@ def list_performance_files(performance: str):
                 "order": piece_num
             })
 
-    # Sort by piece number
     files_sorted = sorted(files, key=lambda f: f["order"])
     return files_sorted
+
+@router.get("/db/performances-detailed")
+def list_performances_detailed():
+    """
+    Returns the list of performances with metadata for presentation.
+    """
+    perfs = get_performances_json()
+    performances = []
+    for p in perfs:
+        performances.append({
+            "no_in_order": int(p["No"]),
+            "pianist": _name_nice(p.get("Pianist")),
+            "pianist_gnd": p.get("GND number"),
+            "year": int(p["Recording Year"]),
+            "date": _date_nice(p.get("Recording Date"), p.get("Recording Month"), year = int(p["Recording Year"])),
+            "place": p.get("City"),
+            "place_addendum": p.get("Exact place") if p.get("Exact place") not in _MISSING else "",
+            "coordinates": _disentangle_coordinates(p.get("coordinates")),
+            "recording_context": p.get("Recording Context"),
+            "misc": p.get("misc") if p.get("misc") not in _MISSING else ""
+        })
+    return performances

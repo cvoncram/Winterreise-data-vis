@@ -2,15 +2,15 @@
 	import type { PerformanceRow } from "$lib/types";
     import * as d3 from "d3";
 
-    let {performances, parameter}: {
-        performances: PerformanceRow[][], parameter: string
+    let {performances, parameter, labels}: {
+        performances: PerformanceRow[][], parameter: string, labels: string[]
     } = $props();
+
+
+    let usedColors: string[] = $state([]);
 
     type Point = { measure: string; value: number };
 
-    // Filters out null values while keeping each value paired with its
-    // originating measure, so lines stay aligned to the shared x-axis even
-    // when a performance has gaps.
     function extractSeries(performances: PerformanceRow[][], parameter: string): Point[][] {
         if (parameter === "tempo" || parameter === "timbre") {
             const key = parameter as "tempo" | "timbre";
@@ -20,10 +20,7 @@
                     .map(r => ({ measure: r.measure, value: r[key] as number }))
             );
         }
-        // Dynamics arrives as a string: numeric for normal beats, but
-        // occasionally "extreme" or empty. Those are dropped rather than
-        // coerced, so the raw signed dB value is plotted as measured —
-        // louder beats sit higher on the axis.
+
         return performances.map(p =>
             p
                 .filter(r => r.dynamics !== null)
@@ -34,7 +31,7 @@
 
     function createLineGraph(performances: PerformanceRow[][], parameter: string) {
         const margin = { top: 20, right: 20, bottom: 60, left: 80 };
-        const width = 1400 - margin.left - margin.right;
+        const width = 1300 - margin.left - margin.right;
         const height = 800 - margin.top - margin.bottom;
         const refMeasures = performances[0].map(r => r.measure);
 
@@ -61,8 +58,6 @@
 
         const series = extractSeries(performances, parameter);
 
-        // Spans the observed range rather than starting at zero: dynamics is
-        // measured in negative dB, where a zero-based axis would be empty.
         const [lo, hi] = d3.extent(series.flat(), d => d.value) as [number, number];
 
         const y = d3.scaleLinear()
@@ -82,11 +77,17 @@
             const line = d3.line<Point>()
                 .x(d => x(d.measure)!)
                 .y(d => y(d.value));
+
+            const strokeColor = color(String(i))
             g.append("path")
-            .attr("d", line(points))
-            .attr("fill", "none")
-            .attr("stroke", color(String(i)));
+                .attr("d", line(points))
+                .attr("fill", "none")
+                .attr("stroke", strokeColor);
+            usedColors.push(strokeColor);             
+
         });
+
+        $inspect(usedColors.toString)
 
         return svg.node();
     }
@@ -104,4 +105,14 @@
 
 </script>
 
-<div {@attach attachGraph} class="relative p-5 w-full"></div>
+
+<div class="flex flex-row p-5">
+    <div {@attach attachGraph} class="basis-2/3"></div>
+
+    <div class="basis-1/3 align-middle">
+        <p>Key:</p>
+        {#each labels as label, i}
+            <p style="color: {usedColors[i]}">{label}</p>
+        {/each}
+    </div>
+</div>

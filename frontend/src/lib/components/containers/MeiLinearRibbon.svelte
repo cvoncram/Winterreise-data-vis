@@ -5,7 +5,6 @@
 
     let { displayedRows = $bindable([]), metadata, normalizationReference = null, selectedColorDropdown = $bindable("viridisScheme"), selectedRowAll = $bindable(false), selectedRowTarget = $bindable(null), maxDuration = 0 }:
         { displayedRows? : PerformanceRow[]; metadata: PerformanceMetadata | null; normalizationReference?: NormalizationReference | null; selectedColorDropdown?: string; selectedRowAll: boolean; selectedRowTarget: string | null;
-          /** Longest duration among all displayed ribbons, in seconds; sets the shared horizontal extent. */
           maxDuration?: number } = $props();
 
     let selectedRow = $state<PerformanceRow | null>(null);
@@ -17,9 +16,6 @@
     const marginBottom = 30;
     const marginLeft = 40;
 
-    // Bar length maps a [0,1] unit value through 0.5 + 2u, so the range is
-    // fixed by construction. Using it as the domain keeps every ribbon on the
-    // same vertical scale instead of normalising each to its own maximum.
     const LENGTH_MAX = 2.5;
 
     let visualData = $derived.by(() => {
@@ -28,8 +24,6 @@
         const dyn = computeDynamicsUnit(displayedRows, normalizationReference);
         const timbreUnit = computeTimbreUnit(displayedRows, normalizationReference);
 
-        // Positions are accumulated in seconds, not pixels — the scale below
-        // turns them into pixels against a shared extent.
         let elapsed = 0;
 
         return displayedRows.map((d, i) => {
@@ -46,7 +40,6 @@
         });
     });
 
-    /** Falls back to this ribbon's own duration when no shared extent is given. */
     let extent = $derived(
         maxDuration > 0 ? maxDuration : (visualData.at(-1)?.t1 ?? 0)
     );
@@ -57,10 +50,6 @@
 
             container.innerHTML = '';
 
-            // Both scales are shared across ribbons rather than fitted to each
-            // one: horizontally via the longest performance, vertically via the
-            // fixed range of the length mapping. Only then are two stacked
-            // ribbons actually comparable.
             const x = d3.scaleLinear()
                 .domain([0, extent])
                 .range([marginLeft, width - marginRight]);
@@ -96,12 +85,8 @@
                     } else {
                         selectedRow = displayedRows[d.index];
                     };
-                    console.log("click!")
-
                 });
 
-            // Now that positions are in seconds, the axis can actually be
-            // labelled — previously this group was created but left empty.
             svg.append("g")
                 .attr("class", "x-axis")
                 .attr("transform", `translate(0,${height - marginBottom})`)
@@ -118,8 +103,6 @@
                 : null;
         }
     });
-
-
 
 </script>
 
