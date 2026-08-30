@@ -19,6 +19,11 @@
         popup.style.top = `${event.clientY - popupHeight - 12}px`;
     }
 
+    function lastName(fullName: string){
+        const sep = fullName.split(" ");
+        return sep[1];
+    }
+
     function hidePopup() {
         popup.classList.add("hidden");
     }
@@ -57,14 +62,22 @@
             .attr("transform", `translate(${margin}, ${margin}, ${margin}, ${margin})`);
 
         const x = d3.scaleLinear([1945, 2000], [margin, width - margin]);
-        const boxWidth = width/15;
+        const boxWidth = width/30;
         const color = d3.scaleOrdinal(d3.schemeCategory10);
 
         const rectXs = performances.map(d => (x(d.year) - boxWidth/2));
-        const barHeight = boxWidth / 2;
+        const barHeight = (() => {
+            if (width < 1500){
+            return boxWidth * 3
+            } else if (width >= 1500 && width < 2300) {
+                return boxWidth * 2
+            } else {
+                return boxWidth;
+            }
+        })();
         const gap = 2;
         const rectY = height - barHeight - margin;
-        const yShift = yIndex.map(v => v * (barHeight + gap));;
+        const yShift = yIndex.map(v => v * (barHeight + gap));
 
         g.append("g")
             .attr("class", "bars")
@@ -84,8 +97,10 @@
         svg.selectAll("text")
             .data(performances)
             .join("text")
-            .attr("x", (d, i) => rectXs[i] + boxWidth / 2)
-            .attr("y", (d, i) => rectY + boxWidth / 4 - yShift[i])
+            .attr('transform', (d,i)=>{
+                return 'translate( '+(rectXs[i] + boxWidth / 2) +' , '+(rectY - (yShift[i]) + barHeight / 2)+'),'+ 'rotate(90)';})
+            .attr("x", 0)
+            .attr("y", 0)
             .attr("text-anchor", "middle")
             .attr("dominant-baseline", "middle")
             .attr("fill", "white")
@@ -93,7 +108,7 @@
                 event.stopPropagation();
                 showPopup(event, `${d.pianist}, ${d.place} ${d.year}`)
             })
-            .text(d => (d.pianist + ", " + d.year));
+            .text(d => (lastName(d.pianist) + " " + d.year));
 
         g.append("g")
             .attr("class", "x-axis")
@@ -117,3 +132,13 @@
 
 <div {@attach attachGraph} bind:clientWidth={width}></div>
 <div bind:this={popup} class="fixed bg-base-200 shadow-md rounded p-2 text-sm pointer-events-none hidden whitespace-pre-line"></div>
+
+<style>
+    :global(rect) {
+        cursor: pointer;
+    }
+
+    :global(svg text) {
+        cursor: pointer;
+    }
+</style>

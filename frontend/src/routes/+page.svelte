@@ -33,9 +33,9 @@
 
     $effect(() => {
         if (viewMap == true) {
-            mapLabel = "View as timeline"
+            mapLabel = "View timeline"
         } else {
-            mapLabel = "View as map"
+            mapLabel = "View map"
         }
     })
 
@@ -49,7 +49,7 @@
 
 
     <div class="relative bg-base-100 p-10 rounded-md shadow-xl opacity-85 w-full">
-        <div class="w-2/3 opacity-85 p-10 text-center mx-auto">
+        <div class="opacity-85 p-10 text-left ml-[20%] mr-[20%]">
             <h3 class="text-5xl mb-5"><i>Winterreise</i> and Dietrich Fischer-Dieskau</h3>
             <div class="text-l mb-5">Franz Schubert composed the song cycle <i>Winterreise</i> for voice and piano shortly before his death in 1827. 
                 Famous German baritone Dietrich Fischer-Dieskau had great influence on its reception in the 20th century, performing it more than 130 times
@@ -61,9 +61,9 @@
         </div>
 
 
-        <h3 class="text-3xl mb-5 text-center">Where and when the recordings originated
-            <p class="float-right">{mapLabel}
-                <input type="checkbox" class="toggle text-xl" onchange={() => {viewMap = !viewMap}} /> 
+        <h3 class="text-3xl mb-5 ml-20">Where and when the recordings originated
+            <p class="float-right">Timeline 
+                <input type="checkbox" class="toggle text-xl" onchange={() => {viewMap = !viewMap}} /> Map
             </p>
         </h3>
         
