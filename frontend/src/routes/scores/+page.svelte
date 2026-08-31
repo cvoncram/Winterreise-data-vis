@@ -10,7 +10,6 @@
 
     let scaleLabel = $derived(pageState.scale);
     let spacingPercentLabel = $derived(pageState.spacingPercent);
-    let pageWidthLabel = $derived(pageState.pageWidth);
     let pageHeightLabel = $derived(pageState.pageHeight);
 
     let meiViewer = $state<ReturnType<typeof MeiViewer>>();
@@ -57,7 +56,6 @@
     });
 
 </script>
-<span class="label-text mb-2 text-lg font-semibold">Change appearance</span>
 <div class="flex">
     <div class="fixed top-0 left-0 h-full w-64 bg-base-200 p-4 flex flex-col justify-center items-center gap-4 z-10">
 
@@ -85,12 +83,6 @@
                     oninput={(e) => {spacingPercentLabel = Number(e.currentTarget.value)}}/>
                     <span class="font-bold">{spacingPercentLabel}</span>
                 </label>
-                <label>Page width (pixels):
-                    <input type="range" min="400" max="1600" value={pageState.pageWidth} class="range range-s range-primary"
-                    onchange={(e) => { pageState.pageWidth = Number(e.currentTarget.value); meiViewer?.doLayout();}}
-                    oninput={(e) => {pageWidthLabel = Number(e.currentTarget.value)}}/>
-                    <span class="font-bold">{pageWidthLabel}</span>
-                </label>
                 <label>Minimum page height (pixels):
                     <input type="range" min="300" max="4000" value={pageState.pageHeight} class="range range-s range-primary"
                     onchange={(e) => { pageState.pageHeight = Number(e.currentTarget.value); meiViewer?.doLayout();}}
@@ -103,15 +95,15 @@
 
     </div>
 
-    <div class="ml-64 p-4">
+    <div class="ml-64 w-full p-4">
 
         {#if loading}
         <div class="flex items-center justify-center w-full h-[80vh]">
             <span class="loading loading-spinner loading-lg"></span>
         </div>
         {:else if pageState.meiContent}
-        <div class="card bg-base-100 p-4 shadow-md">
-            <MeiViewer bind:this={meiViewer} src={pageState.meiContent} bind:scale={pageState.scale} bind:spacingPercent={pageState.spacingPercent} bind:pageWidth={pageState.pageWidth} bind:pageHeight={pageState.pageHeight}/>
+        <div class="card bg-base-100 p-2 w-full">
+            <MeiViewer bind:this={meiViewer} src={pageState.meiContent} bind:scale={pageState.scale} bind:spacingPercent={pageState.spacingPercent} bind:pageHeight={pageState.pageHeight}/>
         </div>
         {/if}
 

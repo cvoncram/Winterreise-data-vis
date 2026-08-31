@@ -25,8 +25,11 @@
         );
    }
 
-   $effect(() => {
-        if (performances.length > 0 && lockedPath && checked.length === 0) {
+    /**
+     * Keeps the boxes in step with the selection they represent.
+     */
+    $effect(() => {
+        if (performances.length > 0 && checked.length !== performances.length) {
             initChecked();
         }
     });
@@ -42,17 +45,18 @@
 
 <div class="flex w-full mt-2 justify-start">
     <div class="flex gap-6 max-w-4xl w-full">
-        <div class="bg-base-100 p-4 rounded-lg shadow flex flex-col items-start overflow-visible">
+        <div class="bg-base-100 p-4 rounded-lg shadow flex flex-col items-start overflow-visible w-full min-w-0">
             <span class="label-text mb-2 text-lg font-semibold">Select performances</span>
             {#each performances as p, i}
-                <label class="label">
+                <label class="label w-full gap-3">
                     <input
                         type="checkbox"
+                        class="shrink-0"
                         checked={checked[i]}
                         disabled={p.path === lockedPath}
                         onchange={() => handleToggle(i)}
                     />
-                    {p.label}
+                    <span class="whitespace-normal wrap-break-word">{p.label}</span>
                 </label>
             {/each}
         </div>

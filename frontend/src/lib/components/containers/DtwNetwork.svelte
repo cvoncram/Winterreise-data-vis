@@ -1,5 +1,8 @@
 <script lang=ts>
     import * as d3 from "d3";
+    import { untrack } from "svelte";
+    import SvgDownloadButton from '$lib/components/partials/SvgDownloadButton.svelte';
+    let svgContainer: HTMLDivElement | undefined = $state();
 
     let {nodes, links, linkWidth = $bindable(), nodeSize = $bindable()}: {
         nodes: { id: number; label?: string; }[];
@@ -12,8 +15,8 @@
 
     let popup: HTMLDivElement;
 
-    const width = 1600;
-    const height = 680;
+    let width = $state(0);
+    let height = $state(0);
 
     interface GraphNode extends d3.SimulationNodeDatum {
         id: number;
@@ -47,6 +50,18 @@
         let simulation: d3.Simulation<GraphNode, GraphLink> | null = null;
         let linkSelection: d3.Selection<SVGLineElement, GraphLink, SVGGElement, unknown> | null = null;
         let nodeSelection: d3.Selection<SVGCircleElement, GraphNode, SVGGElement, unknown> | null = null;
+        let svgSelection: d3.Selection<SVGSVGElement, undefined, null, undefined> | null = null;
+        let zoom: d3.ZoomBehavior<SVGSVGElement, undefined> | null = null;
+
+        /** Writes the measured box onto the existing SVG, without rebuilding it. */
+        function applySize(w: number, h: number) {
+            if (!svgSelection || w === 0 || h === 0) return;
+            svgSelection
+                .attr("width", w)
+                .attr("height", h)
+                .attr("viewBox", `${-w / 2} ${-h / 2} ${w} ${h}`);
+            zoom?.extent([[0, 0], [w, h]]);
+        }
 
         $effect(() => {
             const currentNodes = nodes.map(n => ({...n})) as GraphNode[];
@@ -64,13 +79,9 @@
                 .force("y", d3.forceY());
 
             const svg = d3.create("svg")
-                .attr("width", width)
-                .attr("height", height)
-                .attr("viewBox", [-width / 2, -height / 2, width, height])
-                .attr("style", "max-width: 100%; height: auto;");
+                .attr("style", "max-width: 100%;");
 
-            svg.call(d3.zoom<SVGSVGElement, undefined>()
-                .extent([[0, 0], [width, height]])
+            zoom = d3.zoom<SVGSVGElement, undefined>()
                 .scaleExtent([.2, 8])
                 .filter(event => {
                     if (event.type === 'wheel') return true;
@@ -79,14 +90,17 @@
                 .on("zoom", (event: d3.D3ZoomEvent<SVGSVGElement, undefined>) => {
                     svg.select("g").attr("transform", event.transform.toString());
                     hidePopup();
-                })
-            );
+                });
+            svg.call(zoom);
+
+            svgSelection = svg;
+            applySize(untrack(() => width), untrack(() => height));
 
             const g = svg.append("g");
 
             linkSelection = g.append("g")
                 .attr("stroke", "#668ba4")
-                .attr("stroke-opacity", 0.8)
+                .attr("stroke-opacity", 0.9)
                 .selectAll<SVGLineElement, GraphLink>("line")
                 .data(currentLinks)
                 .join("line")
@@ -97,8 +111,8 @@
                 });
 
             nodeSelection = g.append("g")
-                .attr("stroke", "yellow")
-                .attr("fill", "green")
+                .attr("stroke", "#009E37")
+                .attr("fill", "#EDEFC4")
                 .attr("stroke-width", 1.5)
                 .selectAll<SVGCircleElement, GraphNode>("circle")
                 .data(currentNodes)
@@ -140,6 +154,10 @@
         });
 
         $effect(() => {
+            applySize(width, height);
+        });
+
+        $effect(() => {
             if (!linkSelection || !nodeSelection) return;
             linkSelection.attr("stroke-width", d => linkWidth / d.distance);
             nodeSelection.attr("r", nodeSize);
@@ -152,5 +170,8 @@
     }
 </script>
 
-<div {@attach attachGraph} class="w-full h-full overflow-auto"></div>
+<div {@attach attachGraph} bind:this={svgContainer} bind:clientWidth={width} bind:clientHeight={height} class="w-full h-screen border-2 border-primary rounded-xl"></div>
 <div bind:this={popup} class="fixed bg-base-200 shadow-md rounded p-2 text-sm pointer-events-none hidden whitespace-pre-line"></div>
+<div class="flex justify-end">
+    <SvgDownloadButton container={svgContainer} filename="dtw-network" />
+</div>

@@ -2,10 +2,12 @@
     import * as d3 from "d3";
     import type { PerformanceRow, PerformanceMetadata, NormalizationReference } from "$lib/types";
     import { applyColorScheme, computeDynamicsUnit, computeTimbreUnit } from "$lib/utils/performanceVisuals";
+    import SvgDownloadButton from '$lib/components/partials/SvgDownloadButton.svelte';
+    let svgContainer: HTMLDivElement | undefined = $state();
 
-    let { displayedRows = $bindable([]), metadata, normalizationReference = null, selectedColorDropdown = $bindable("viridisScheme"), selectedRowAll = $bindable(false), selectedRowTarget = $bindable(null), maxDuration = 0 }:
+    let { displayedRows = $bindable([]), metadata, normalizationReference = null, selectedColorDropdown = $bindable("viridisScheme"), selectedRowAll = $bindable(false), selectedRowTarget = $bindable(null), maxDuration = 0, label = 'linear-ribbon' }:
         { displayedRows? : PerformanceRow[]; metadata: PerformanceMetadata | null; normalizationReference?: NormalizationReference | null; selectedColorDropdown?: string; selectedRowAll: boolean; selectedRowTarget: string | null;
-          maxDuration?: number } = $props();
+          maxDuration?: number; label?: string } = $props();
 
     let selectedRow = $state<PerformanceRow | null>(null);
 
@@ -107,7 +109,7 @@
 </script>
 
 <div class="flex gap-2 overflow-hidden">
-    <div {@attach attachGraph} class="relative w-[75%]"></div>
+    <div {@attach attachGraph} bind:this={svgContainer} class="relative w-[75%]"></div>
     <div class="relative w-[25%] min-h-px">
         {#if selectedRow}
             <div><b>Selected measure:</b> {selectedRow?.measure}</div>
@@ -115,6 +117,10 @@
             <div><b>Dynamics:</b> {selectedRow?.dynamics} dB</div>
             <div><b>Spectral centroid:</b> {selectedRow?.timbre} Hz</div>
         {/if}
+
+        <div class="mt-2">
+            <SvgDownloadButton container={svgContainer} filename={label} />
+        </div>
     </div>
 </div>
 

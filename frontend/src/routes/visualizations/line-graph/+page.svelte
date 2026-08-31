@@ -10,14 +10,9 @@
 
     let error: string = $state("");
     let loading = $state(false);
-    let labels: string[] = $state([]);
 
     async function selectPiece(piece: SongInfo) {
         pageState.selectedPiece = piece;
-        pageState.selectedPerformances = pageState.allPerformances.map(perf => ({
-            ...perf,
-            songPerformances: [{ song: piece, rows: [] }]
-        }));
     }
 
     async function selectParameter (parameter: Parameter) {
@@ -25,12 +20,21 @@
     }
 
     async function generateGraph() {
-        if (!pageState.selectedPiece || pageState.selectedPerformances.length === 0) return;
+        if (!pageState.selectedPiece) {
+            error = "Select a piece first.";
+            return;
+        }
+        if (pageState.selectedPerformances.length === 0) {
+            error = "Select at least one performance.";
+            return;
+        }
+
+        error = "";
         loading = true;
+        const selection = [...pageState.selectedPerformances];
         try {
             const results = await Promise.all(
-                pageState.selectedPerformances.map(async (perf) => {
-                    labels.push(perf.label);
+                selection.map(async (perf) => {
                     const folder = perf.path;
                     const fileNumber = pageState.selectedPiece!.nbInOrder;
                     const fileName = `${folder}/${folder.split('/').pop()}_${fileNumber}_Audio_Data.xml`;
@@ -42,6 +46,7 @@
                 })
             );
             pageState.graphPerformances = results.map(r => r[1].data);
+            pageState.labels = selection.map(p => p.label);
             pageState.showGraph = true;
         } catch (e: any) {
             error = e.message;
@@ -64,9 +69,9 @@
 </script>
 
 <div class="flex h-auto overflow-hidden">
-    <aside class="w-64 shrink-0 bg-base-200 p-4 items-center flex flex-col justify-center gap-4">
+    <aside class="w-64 shrink-0 bg-base-200 p-4 flex flex-col gap-4">
 
-        <div class="card bg-base-200 p-4 shadow-md justify-start">
+        <div class="card w-full bg-base-200 p-4 shadow-md justify-start">
             <ScoreSelector files={pageState.pieces} selectedFile={pageState.selectedPiece} onFileSelect={selectPiece} />
             <ParameterSelector selectedParameter={pageState.selectedParameter} onParameterSelect={selectParameter}/>
             <MultiplePerformancesSelector performances={pageState.allPerformances} bind:selectedPerformances={pageState.selectedPerformances}/>
@@ -77,14 +82,14 @@
         </div>
     </aside>
 
-    <main class="flex-1 flex flex-col p-10 overflow-hidden">
-        <div style="background-color: rgba(254, 255, 223, .2);" class="border-2 border-[#668ba4] rounded-xl bg-base-200">
+    <main class="flex-1 flex flex-col p-5 overflow-auto">
+        <div>
             {#if loading}
-            <div class="flex items-center justify-center w-full h-[80vh] rounded-lg">
+            <div class="flex items-center justify-center w-full h-full rounded-lg">
                 <span class="loading loading-spinner loading-lg"></span>
             </div>
             {:else if pageState.showGraph}
-            <LineGraph performances={pageState.graphPerformances} parameter={pageState.selectedParameter} labels={labels}/>
+            <LineGraph performances={pageState.graphPerformances} parameter={pageState.selectedParameter} labels={pageState.labels}/>
             {:else}
             <div style="background-color: rgba(254, 255, 223, .2)" class="flex items-center justify-center w-full h-[80vh] rounded-lg">
                 <p class="text-base-content opacity-50">Select a piece, parameter and performances, then click Generate Graph</p>

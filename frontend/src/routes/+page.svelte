@@ -7,7 +7,6 @@
 
     let performances = $state<PerformanceDetailed[] | undefined>(undefined);
     let viewMap = $state(false);
-    let mapLabel = $derived("View as map");
     let error = $state("");
     
     onMount(async () => {
@@ -31,17 +30,9 @@
         }
     })
 
-    $effect(() => {
-        if (viewMap == true) {
-            mapLabel = "View timeline"
-        } else {
-            mapLabel = "View map"
-        }
-    })
-
 </script>
 
-<div class="relative flex flex-col items-center px-[10%] h-full overflow-hidden">
+<div class="relative flex flex-col items-center pl-[10%] pr-[10%] h-full overflow-hidden">
     <div 
     class="absolute inset-0 bg-cover bg-center opacity-50"
     style="background-image: url('/Winterreise_manuscript.jpg');">
@@ -49,14 +40,14 @@
 
 
     <div class="relative bg-base-100 p-10 rounded-md shadow-xl opacity-85 w-full">
-        <div class="opacity-85 p-10 text-left ml-[20%] mr-[20%]">
+        <div class="opacity-85 text-left ml-[20%] mr-[20%]">
             <h3 class="text-5xl mb-5"><i>Winterreise</i> and Dietrich Fischer-Dieskau</h3>
             <div class="text-l mb-5">Franz Schubert composed the song cycle <i>Winterreise</i> for voice and piano shortly before his death in 1827. 
                 Famous German baritone Dietrich Fischer-Dieskau had great influence on its reception in the 20th century, performing it more than 130 times
                 in an extraordinarily long period of time from 1943 to 1991.<br><br>
-                This project aims to accomplish twofold: First, creating an <i>Interpretationsedition</i> based on Fischer-Dieskaus personal copy; incorporating 
-                his interpretative markings and directives. Second, examining 26 recordings from 1948 to 1990 by Fischer-Dieskau and 12 different pianists more
-                closely, extracting audio analysis data and comparing these recordings to each other on the grounds of tempo, dynamics, and timbre data. 
+                <h4 class="text-2xl mb-2">What this application aims to accomplish</h4>
+                First, creating an <i>Interpretationsedition</i> based on Fischer-Dieskaus personal copy; incorporating his interpretative markings and directives. <a class="underline" href="/scores">Click here to view the annotated scores.</a><br> 
+                Second, examining 26 recordings from 1948 to 1990 by Fischer-Dieskau and 12 different pianists more closely, extracting audio analysis data and comparing these recordings to each other on the grounds of tempo, dynamics, and timbre data. <a class="underline" href="/visualizations">Click here to view the different analysis and visualization tools.</a>
             </div>
         </div>
 

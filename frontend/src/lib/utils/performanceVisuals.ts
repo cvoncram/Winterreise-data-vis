@@ -13,11 +13,6 @@ export function applyColorScheme(scheme: string, value: number): string {
 
 /**
  * Total sounding duration of a beat sequence, in seconds.
- *
- * A beat's duration is 60/bpm, so summing gives how long the passage actually
- * takes. Used as the shared horizontal scale across several ribbons: the
- * longest performance sets the extent, and slower readings therefore appear
- * wider rather than being normalised away.
  */
 export function totalDuration(rows: PerformanceRow[]): number {
     return rows.reduce((sum, r) => sum + (r.tempo ? 60 / r.tempo : 0), 0);

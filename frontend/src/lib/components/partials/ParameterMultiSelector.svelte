@@ -5,7 +5,6 @@
 		metric = "euclidean"
 	}: {
 		selectedParameters?: string[];
-		/** Relative weights per parameter; only shown when they can take effect. */
 		weights?: Record<string, number>;
 		metric?: string;
 	} = $props();
@@ -17,14 +16,13 @@
 	];
 
 	/**
-	 * Weighting only has an effect on several parameters compared with the
-	 * euclidean metric. Under Mahalanobis it cancels out mathematically, since
-	 * that metric already normalises every direction to unit variance — so the
-	 * sliders are hidden rather than offered without effect.
+	 * Weighting only has an effect on several parameters compared with the euclidean metric.
 	 */
 	const weightsApply = $derived(selectedParameters.length > 1 && metric === "euclidean");
 
-	/** Share each parameter actually contributes, for display. */
+	/** 
+	 * Share each parameter actually contributes, for display.
+	 */
 	const shares = $derived.by(() => {
 		const total = selectedParameters.reduce((sum, p) => sum + (weights[p] ?? 0), 0);
 		const equal = 1 / Math.max(selectedParameters.length, 1);

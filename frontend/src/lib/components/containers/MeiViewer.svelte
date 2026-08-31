@@ -2,8 +2,8 @@
     import { onMount } from 'svelte';
     import PageControls from '../partials/PageControls.svelte';
     
-    let {src, scale = $bindable(40), spacingPercent = $bindable(25), pageWidth = $bindable(1400), pageHeight = $bindable(600)}:
-        {src: string; scale: number; spacingPercent: number; pageWidth: number; pageHeight: number } = $props();
+    let {src, scale = $bindable(40), spacingPercent = $bindable(25), pageHeight = $bindable(600)}:
+        {src: string; scale: number; spacingPercent: number; pageHeight: number } = $props();
 
     let meiDocument: Document;
     
@@ -13,6 +13,7 @@
     let totalPages = $state(1);
     let toolkitReady = $state(false);
     let vrvToolkit: any;
+    let pageWidth = $state(0)
 
     let meiIdMap = new Map<string, Element>();
     
@@ -279,12 +280,11 @@
     
 </script>
 
-<!-- MeiViewer.svelte -->
-<div class="viewer-container" style="--pageWidth: {pageWidth}px; --viewport-height: {viewportHeight}px">
+<div class="viewer-container w-full" style="--viewport-height: {viewportHeight}px">
     {#if error}
         <p class="text-error">{error}</p>
     {/if}
-    <div class="mei-svg" {@attach attachMeiContainer}>
+    <div class="mei-svg w-full" bind:clientWidth={pageWidth} {@attach attachMeiContainer}>
         {@html svg}
     </div>
 
@@ -301,7 +301,6 @@
         </form>
     </dialog>
     
-    <!-- Page controls -->
     <div class="page-controls">
         <PageControls
         {currentPage}
@@ -320,10 +319,8 @@
         align-items: center;
         gap: 1.5rem;
         padding: 1rem;
-        width: var(--pageWidth);
         min-width: 400px;
         margin: 0 auto;
-        border: 2px solid var(--color-primary);
         border-radius: 8px;
     }
     
@@ -386,7 +383,6 @@
         line-height: 3vh;
     }
     
-    /* Page controls */
     .page-controls {
         display: flex;
         flex-direction: column;

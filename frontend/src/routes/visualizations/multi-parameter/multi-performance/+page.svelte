@@ -17,8 +17,6 @@
 
     /**
      * Report where the first ribbon ended up, which is what starts the morph.
-     * The rows come from `selection` synchronously, so the ribbon is already
-     * rendered by the time this runs — no waiting on a fetch.
      */
     $effect(() => {
         if (!morph.active || morph.to || !ribbonList) return;
@@ -30,10 +28,6 @@
         });
     });
 
-    // Shared horizontal extent for all ribbons: the longest performance sets
-    // the scale, so a slower reading of the same passage appears wider.
-    // Recomputed over the whole selection rather than tracked incrementally,
-    // so that removing the longest performance shrinks the extent again.
     let maxDuration = $derived(
         Math.max(0, ...pageState.selectedPerformances.map(
             p => totalDuration(p.songPerformances[0]?.rows ?? [])
@@ -53,19 +47,16 @@
         const folderName = fullPath.split("/")[1];
         const matchingPerf = pageState.allPerformances.find(p => p.path === folderName);
 
-        pageState.lockedPath = folderName; // set once per new selection
+        pageState.lockedPath = folderName;
 
         pageState.selectedPerformances = [{
             path: folderName,
             label: matchingPerf?.label ?? folderName,
             metadata: selection.metadata,
-            // Handed over by the circular ribbon, so the bars carry their
-            // final colours on the very first render.
             normalizationReference: selection.normalizationReference ?? undefined,
             songPerformances: [{ song: null, rows: selection.measures }]
         }];
 
-        // Only needed if the source page never resolved a reference itself.
         if (selection.normalizationReference) return;
 
         fetchNormalizationReference(folderName, nbInOrder())
@@ -109,9 +100,6 @@
             console.error(e);
         }
 
-        // Re-initialise only when the user actually made a new selection.
-        // Arriving any other way — browser history, in-app navigation —
-        // leaves the retained selectedPerformances untouched.
         if (selection.pending) {
             selection.pending = false;
             applySelection();
@@ -188,11 +176,7 @@
                 }
                 return existingMap.get(p.path) ?? p;
             });
-
-            // The selector hands back its own order, which is alphabetical by
-            // label — so adding an earlier name would push the locked
-            // performance down the list. It is the reference point of the
-            // comparison and stays on top.
+            
             pageState.selectedPerformances = [
                 ...resolved.filter(p => p.path === pageState.lockedPath),
                 ...resolved.filter(p => p.path !== pageState.lockedPath)
@@ -267,6 +251,7 @@
                     selectedRowAll={pageState.selectSameMeasure}
                     bind:selectedRowTarget={pageState.selectedRowTarget}
                     {maxDuration}
+                    label={performance.label}
                 />
             {/each}
             {#if loading}
@@ -280,7 +265,6 @@
             {#if pageState.showScore}
                 <MeiViewer
                     pageHeight={500}
-                    pageWidth={700}
                     scale={40}
                     spacingPercent={20}
                     src={pageState.score}

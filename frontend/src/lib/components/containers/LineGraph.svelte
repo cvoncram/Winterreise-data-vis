@@ -1,13 +1,17 @@
 <script lang="ts">
 	import type { PerformanceRow } from "$lib/types";
     import * as d3 from "d3";
+    import SvgDownloadButton from '$lib/components/partials/SvgDownloadButton.svelte';
+    let svgContainer: HTMLDivElement | undefined = $state();
 
     let {performances, parameter, labels}: {
         performances: PerformanceRow[][], parameter: string, labels: string[]
     } = $props();
 
+    let width = $state(0);
 
-    let usedColors: string[] = $state([]);
+    const color = d3.scaleOrdinal(d3.schemeCategory10);
+    const usedColors = $derived(labels.map((_, i) => color(String(i))));
 
     type Point = { measure: string; value: number };
 
@@ -29,19 +33,19 @@
         );
     }
 
-    function createLineGraph(performances: PerformanceRow[][], parameter: string) {
-        const margin = { top: 20, right: 20, bottom: 60, left: 80 };
-        const width = 1300 - margin.left - margin.right;
-        const height = 800 - margin.top - margin.bottom;
+    function createLineGraph(performances: PerformanceRow[][], parameter: string, width: number) {
+        const margin = 20;
+        const height = 800;
         const refMeasures = performances[0].map(r => r.measure);
 
         const svg = d3.create("svg")
-            .attr("width", width + margin.left + margin.right)
-            .attr("height", height + margin.top + margin.bottom);
+            .attr("width", width)
+            .attr("height", height + 2*margin)
+            .attr("transform", `translate(${margin}, ${-margin})`);
 
 
         const g = svg.append("g")
-            .attr("transform", `translate(${margin.left}, ${margin.top})`);
+            .attr("transform", `translate(${margin}, ${margin})`);
 
 
         function xLabeling (interval: number) {
@@ -71,32 +75,25 @@
         g.append("g")
             .call(d3.axisLeft(y));
 
-        const color = d3.scaleOrdinal(d3.schemeCategory10);
-
         series.forEach((points, i) => {
             const line = d3.line<Point>()
                 .x(d => x(d.measure)!)
                 .y(d => y(d.value));
 
-            const strokeColor = color(String(i))
             g.append("path")
                 .attr("d", line(points))
                 .attr("fill", "none")
-                .attr("stroke", strokeColor);
-            usedColors.push(strokeColor);             
-
+                .attr("stroke", color(String(i)));
         });
-
-        $inspect(usedColors.toString)
 
         return svg.node();
     }
 
     function attachGraph(node: HTMLDivElement) {
         $effect(() => {
-            if (performances.length === 0) return;
+            if (performances.length === 0 || performances[0].length === 0) return;
             node.innerHTML = '';
-            const svg = createLineGraph(performances, parameter);
+            const svg = createLineGraph(performances, parameter, width);
             if (svg) node.appendChild(svg);
         });
 
@@ -106,13 +103,16 @@
 </script>
 
 
-<div class="flex flex-row p-5">
-    <div {@attach attachGraph} class="basis-2/3"></div>
 
-    <div class="basis-1/3 align-middle">
-        <p>Key:</p>
-        {#each labels as label, i}
-            <p style="color: {usedColors[i]}">{label}</p>
-        {/each}
-    </div>
+<div {@attach attachGraph} bind:this={svgContainer} bind:clientWidth={width} class="m-5"></div>
+
+<div>
+    <p>Key:</p>
+    {#each labels as label, i}
+        <p style="color: {usedColors[i]}">{label}</p>
+    {/each}
+</div>
+
+<div class="flex justify-end">
+    <SvgDownloadButton container={svgContainer} filename="line-graph" />
 </div>

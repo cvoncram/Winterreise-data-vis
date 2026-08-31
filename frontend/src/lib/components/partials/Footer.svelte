@@ -2,7 +2,7 @@
     import Logo from "./Logo.svelte";
 </script>
 
-<footer class="footer footer-horizontal footer-center bg-base-200 p-5 shadow-l">
+<footer class="footer footer-horizontal footer-center bg-base-200 w-full p-5 shadow-l">
   <aside>
         <Logo />
 

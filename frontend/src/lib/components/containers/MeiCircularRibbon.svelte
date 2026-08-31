@@ -11,6 +11,9 @@
         PerformanceMetadata,
         NormalizationReference
     } from "$lib/types";
+    import SvgDownloadButton from '$lib/components/partials/SvgDownloadButton.svelte';
+
+    let svgContainer: HTMLDivElement | undefined = $state();
 
     type ArcDatum = d3.PieArcDatum<PerformanceRow> & {
         thickness: number;
@@ -127,9 +130,6 @@
      * Hand the currently selected beats to the morph overlay before
      * navigating: this component is destroyed by the page change, so both the
      * segments and their on-screen position have to be captured first.
-     *
-     * Only the selected range is passed, since that is what the target page
-     * will show.
      */
     function captureForMorph() {
         if (!svg || selectedMeasures.length === 0) return;
@@ -145,8 +145,6 @@
             }));
         if (segments.length === 0) return;
 
-        // Re-span the captured slice across the full semicircle, matching how
-        // the target page lays out the same beats on their own axis.
         const first = segments[0].startAngle;
         const span = segments[segments.length - 1].endAngle - first;
         if (span > 0) {
@@ -189,9 +187,7 @@
     });
 </script>
 
-<!-- SVG CONTAINER -->
-
-<div {@attach attachContainer} class="relative w-full h-[80vh]">
+<div {@attach attachContainer} bind:this={svgContainer} class="relative w-full h-[80vh]">
 
     <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
     <svg 
@@ -257,6 +253,10 @@
             </button>
         </div>
     {/if}
+</div>
+
+<div class="flex justify-end">
+    <SvgDownloadButton container={svgContainer} filename="circular-ribbon" />
 </div>
 
 <style>

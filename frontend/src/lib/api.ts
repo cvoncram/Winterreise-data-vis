@@ -57,14 +57,8 @@ export interface DtwAnalysisResult {
 	weights?: number[] | null;
 	piece: number | null;
 	n: number;
-	/**
-	 * Accumulated distance; grows with the number of beats, so only comparable
-	 * within one request. `null` where the pair was refused — see `warnings`.
-	 */
 	matrix: (number | null)[][];
-	/** Distance per beat compared — comparable across pieces and scopes. */
 	normalizedMatrix: (number | null)[][];
-	/** Pairs that could not be compared, with the reason. */
 	warnings: { i: number; j: number; performances: string[]; reasons: string[] }[];
 	scope: DtwScope;
 }

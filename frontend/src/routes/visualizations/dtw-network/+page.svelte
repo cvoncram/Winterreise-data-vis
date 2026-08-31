@@ -15,12 +15,10 @@
 
     let error: string = $state("");
     let loading = $state(false);
+    let graphFinished = $state(false);
 
     /**
-     * Weights in the order of the selected parameters, normalized to sum to
-     * one. Returns undefined where weighting cannot take effect — a single
-     * parameter, or the Mahalanobis metric, which cancels it out — so the
-     * backend applies its equal-weight default instead.
+     * Weights in the order of the selected parameters, normalized to sum to one. Returns undefined where weighting cannot take effect.
      */
     function currentWeights(): number[] | undefined {
         const params = pageState.selectedParameters;
@@ -65,14 +63,6 @@
                 label: performance.label
             }));
 
-            // The normalized figure is an average per beat compared, so the
-            // number shown when a link is clicked keeps its meaning across
-            // pieces and scopes; the raw one grows with the beat count and
-            // would only be readable within a single request.
-            //
-            // A null entry means the backend refused the pair because the two
-            // recordings do not line up. Such a pair gets no edge — drawing one
-            // would assert a similarity that was never computed.
             const newLinks: { source: number; target: number; distance: number; }[] = [];
             for (let i = 0; i < result.n; i++) {
                 for (let j = i + 1; j < result.n; j++) {
@@ -95,6 +85,7 @@
             console.error(e);
         } finally {
             loading = false;
+            graphFinished = true;
         }
     }
 
@@ -112,22 +103,39 @@
 </script>
 
 <div class="flex h-auto overflow-hidden">
-    <aside class="w-64 shrink-0 bg-base-200 p-4 items-center flex flex-col justify-center gap-4 min-h-screen">
+    <aside class="w-64 shrink-0 bg-base-200 p-4 flex flex-col gap-4 min-h-screen">
         {#if pageState.analysisScope == ""}
-            <div class="card bg-base-200 p-4 shadow-md gap-2 justify-start">
+            <div class="card w-full bg-base-200 p-4 shadow-md gap-2 justify-start">
                 <h2 class="card-title">Choose scope of analysis</h2>
                 <button class="btn btn-primary" onclick={() => {pageState.analysisScope = "cycle"}}>Whole cycle</button>
                 <button class="btn btn-primary" onclick={() => {pageState.analysisScope = "halfCycle"}}>Half cycle ("Abtheilung")</button>
                 <button class="btn btn-primary" onclick={() => {pageState.analysisScope = "piece"}}>Single piece</button>
                 <button class="btn btn-primary" onclick={() => {pageState.analysisScope = "measures"}}>Selected measures</button>
             </div>
-        {:else}
-
+            {:else}
+            
             <button onclick={() => {pageState.analysisScope = ""}} class="btn btn-primary"> <p class="text-4xl">&lArr;</p> Change scope of analysis</button>
+            
+            {#if graphFinished}
+            <div class="card w-full bg-base-200 p-4 shadow-md justify-start">
+                <label>Node size
+                    <input type="range" min="1" max="20" value={pageState.nodeSize} class="range range-s range-primary"
+                    onchange={(e) => { pageState.nodeSize = Number(e.currentTarget.value)}}
+                    oninput={(e) => {nodeSizeLabel = Number(e.currentTarget.value)}}/>
+                    <span class="font-bold">{nodeSizeLabel}</span>
+                </label>
+                <label>Link width
+                    <input type="range" min="2" max="50" value={pageState.linkWidth} class="range range-s range-primary"
+                    onchange={(e) => { pageState.linkWidth = Number(e.currentTarget.value)}}
+                    oninput={(e) => {linkWidthLabel = Number(e.currentTarget.value)}}/>
+                    <span class="font-bold">{linkWidthLabel}</span>
+                </label>
+            </div>
+            {/if}
 
             {#if pageState.analysisScope == "piece"}
 
-                <div class="card bg-base-200 p-4 shadow-md justify-start">
+                <div class="card w-full bg-base-200 p-4 shadow-md justify-start">
                     <ScoreSelector files={pageState.pieces} selectedFile={pageState.selectedPiece} onFileSelect={selectPiece} />
                     <ParameterMultiSelector bind:selectedParameters={pageState.selectedParameters} bind:weights={pageState.parameterWeights} metric={pageState.selectedMetric} />
                     <MetricSelector bind:selectedMetric={pageState.selectedMetric} />
@@ -181,25 +189,11 @@
                 Generate Network
             </button>
 
-            <div class="card bg-base-200 p-4 shadow-md justify-start">
-                <label>Node size
-                    <input type="range" min="1" max="20" value={pageState.nodeSize} class="range range-s range-primary"
-                    onchange={(e) => { pageState.nodeSize = Number(e.currentTarget.value)}}
-                    oninput={(e) => {nodeSizeLabel = Number(e.currentTarget.value)}}/>
-                    <span class="font-bold">{nodeSizeLabel}</span>
-                </label>
-                <label>Link width
-                    <input type="range" min="10" max="400" value={pageState.linkWidth} class="range range-s range-primary"
-                    onchange={(e) => { pageState.linkWidth = Number(e.currentTarget.value)}}
-                    oninput={(e) => {linkWidthLabel = Number(e.currentTarget.value)}}/>
-                    <span class="font-bold">{linkWidthLabel}</span>
-                </label>
-            </div>
 
         {/if}
     </aside>
 
-    <main class="flex-1 flex flex-col p-10 overflow-hidden">
+    <main class="flex-1 flex flex-col p-2 overflow-auto">
         {#if pageState.warnings.length > 0}
             <div class="alert alert-warning mb-4 flex-col items-start">
                 <span class="font-semibold">
@@ -218,7 +212,7 @@
             </div>
         {/if}
 
-        <div style="background-color: rgba(254, 255, 223, .2);" class="rounded-xl">
+        <div class="w-full h-full">
             {#if loading}
                 <div class="flex items-center justify-center w-full h-[80vh]">
                     <span class="loading loading-spinner loading-lg"></span>

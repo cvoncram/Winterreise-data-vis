@@ -7,5 +7,6 @@ export const lineGraphPageState = $state({
 	selectedPiece: null as SongInfo | null,
 	selectedParameter: "tempo" as Parameter,
 	graphPerformances: [] as PerformanceRow[][],
+	labels: [] as string[],
 	showGraph: false
 });

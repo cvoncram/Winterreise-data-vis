@@ -20,8 +20,7 @@
     }
 
     function lastName(fullName: string){
-        const sep = fullName.split(" ");
-        return sep[1];
+        return fullName.split(" ")[1];
     }
 
     function hidePopup() {
@@ -38,7 +37,6 @@
                 yIndices[i] = 0
             }  
         }
-
         return yIndices;
     }
 

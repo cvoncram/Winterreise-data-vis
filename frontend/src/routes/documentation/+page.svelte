@@ -4,7 +4,7 @@
     </div>
     
     
-    <div class="bg-base-100 p-10 rounded-md shadow-xl opacity-85 w-[60%] h-full">
+    <div class="bg-base-100 p-10 rounded-md shadow-xl opacity-85 h-full">
         <h3 class="text-3xl mb-5">Musical performance data visualization</h3>
         <div class="text-xl">
             <p>This project is an interactive web application for visualizing and comparing
@@ -22,8 +22,12 @@
 
         <div class="text-xl">
             <h4 class="text-2xl mb-2">About and Credits</h4>
-            <p>Frontend framework: SvelteKit<br>UI components and animations: TailwindCSS, DaisyUI, and GSAP<br>
-                Visualizations: D3.JS<br>Backend framework: FastAPI<br>MEI engraving engine: Verovio
+            <p>Frontend framework: SvelteKit<br>
+                UI components and animations: TailwindCSS, DaisyUI, and GSAP<br>
+                Visualizations: D3.JS<br>
+                Map: Leaflet and Sveaflet<br>
+                Backend framework: FastAPI<br>
+                MEI engraving engine: Verovio
             </p><br>
             <h4 class="text-2xl mb-2">About this application</h4>
             <p>This application was created by Clemens von Cramon as part of the M.A. thesis in <i>Digital 

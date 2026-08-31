@@ -34,7 +34,6 @@
     {@render children()}
 </main>
 
-<!-- Sits outside the page content so it survives navigation. -->
 <RibbonMorph />
 
 <Footer />
