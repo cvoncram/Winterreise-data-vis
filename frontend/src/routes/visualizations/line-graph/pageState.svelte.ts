@@ -8,5 +8,6 @@ export const lineGraphPageState = $state({
 	selectedParameter: "tempo" as Parameter,
 	graphPerformances: [] as PerformanceRow[][],
 	labels: [] as string[],
-	showGraph: false
+	showGraph: false,
+	active: "graph"
 });

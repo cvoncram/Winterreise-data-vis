@@ -7,6 +7,7 @@
 	import LineGraph from "$lib/components/containers/LineGraph.svelte";
     import { fetchAllPerformances, fetchPieces } from "$lib/api";
     import { lineGraphPageState as pageState } from "./pageState.svelte";
+	import MeiMultiTable from "$lib/components/containers/MeiMultiTable.svelte";
 
     let error: string = $state("");
     let loading = $state(false);
@@ -78,7 +79,28 @@
             {#if error}
             <p class="text-error mt-2">{error}</p>
             {/if}
-            <button class="btn btn-primary" onclick={generateGraph} type="submit">Generate Graph</button>
+            <button class="btn btn-primary mb-5" onclick={generateGraph} type="submit">{pageState.active == "graph" ? "Generate Graph" : "Generate Table"}</button>
+            <button
+                class={`btn btn-block ${
+                    pageState.active === "graph"
+                        ? "btn-primary"
+                        : "bg-base-300"
+                }`}
+                onclick={() => (pageState.active = "graph")}
+            >
+                Show graph
+            </button>
+
+            <button
+                class={`btn btn-block ${
+                    pageState.active === "table"
+                        ? "btn-primary"
+                        : "bg-base-300"
+                }`}
+                onclick={() => (pageState.active = "table")}
+            >
+                Show data table
+            </button>
         </div>
     </aside>
 
@@ -88,8 +110,10 @@
             <div class="flex items-center justify-center w-full h-full rounded-lg">
                 <span class="loading loading-spinner loading-lg"></span>
             </div>
-            {:else if pageState.showGraph}
+            {:else if pageState.showGraph && pageState.active == "graph"}
             <LineGraph performances={pageState.graphPerformances} parameter={pageState.selectedParameter} labels={pageState.labels}/>
+            {:else if pageState.showGraph && pageState.active == "table"}
+            <MeiMultiTable performances={pageState.graphPerformances} parameter={pageState.selectedParameter} labels={pageState.labels} />
             {:else}
             <div style="background-color: rgba(254, 255, 223, .2)" class="flex items-center justify-center w-full h-[80vh] rounded-lg">
                 <p class="text-base-content opacity-50">Select a piece, parameter and performances, then click Generate Graph</p>

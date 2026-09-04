@@ -7,9 +7,9 @@ export type SongInfo = {
 
 export type PerformanceRow = {
     measure: string;
-    tempo: number;
-    dynamics: string;
-    timbre: number;
+    tempo: number | null;
+    dynamics: number | null;
+    timbre: number | null;
 };
 
 export type PerformanceMetadata = {

@@ -5,13 +5,13 @@
     import { selection } from "$lib/selection.svelte";
     import { morph } from "$lib/ribbonMorph.svelte";
     import { applyColorScheme, computeDynamicsUnit, computeTimbreUnit } from "$lib/utils/performanceVisuals";
+    import SvgDownloadButton from '$lib/components/partials/SvgDownloadButton.svelte';
 
     import type {
         PerformanceRow,
         PerformanceMetadata,
         NormalizationReference
     } from "$lib/types";
-    import SvgDownloadButton from '$lib/components/partials/SvgDownloadButton.svelte';
 
     let svgContainer: HTMLDivElement | undefined = $state();
 
@@ -127,9 +127,7 @@
     }
 
     /**
-     * Hand the currently selected beats to the morph overlay before
-     * navigating: this component is destroyed by the page change, so both the
-     * segments and their on-screen position have to be captured first.
+     * Hand the currently selected beats to the morph overlay before navigating.
      */
     function captureForMorph() {
         if (!svg || selectedMeasures.length === 0) return;

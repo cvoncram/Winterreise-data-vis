@@ -28,19 +28,19 @@
         return performances.map(p =>
             p
                 .filter(r => r.dynamics !== null)
-                .map(r => ({ measure: r.measure, value: parseFloat(r.dynamics) }))
-                .filter(d => !Number.isNaN(d.value))
+                .map(r => ({ measure: r.measure, value: r.dynamics as number }))
         );
     }
 
+    
     function createLineGraph(performances: PerformanceRow[][], parameter: string, width: number) {
-        const margin = 20;
-        const height = 800;
+        const margin = width / 30;
+        const height = 750;
         const refMeasures = performances[0].map(r => r.measure);
 
         const svg = d3.create("svg")
             .attr("width", width)
-            .attr("height", height + 2*margin)
+            .attr("height", height + 2 * margin)
             .attr("transform", `translate(${margin}, ${-margin})`);
 
 
@@ -58,7 +58,7 @@
 
         const x = d3.scalePoint<string>()
             .domain(refMeasures)
-            .range([0, width]);
+            .range([0, width - 3 * margin]);
 
         const series = extractSeries(performances, parameter);
 
@@ -86,6 +86,68 @@
                 .attr("stroke", color(String(i)));
         });
 
+        g.append("text")
+        .attr("x", width / 2)
+        .attr("y", height + 0.9 * margin)
+        .attr("text-anchor", "middle")
+        .style("font-size", "12px")
+        .text("Measures");
+
+        g.append("text")
+            .attr("transform", "rotate(-90)")
+            .attr("x", -height / 2)
+            .attr("y", -0.7 * margin)
+            .attr("text-anchor", "middle")
+            .style("font-size", "12px")
+            .text(() => {
+                switch (parameter) {
+                    case "tempo":
+                        return "tempo (beats per minute)"
+                    case "timbre":
+                        return "spectral centroid (Hertz)"
+                    case "dynamics":
+                        return "dynamics (decibel to full scale)"
+                    default:
+                        return ""
+                }
+            });
+
+            const keyBoxDimensions = () => {
+                let boxWidth = (Math.max(...labels.map(l => l.length)) * 7);
+                let boxHeight = 16 * labels.length;
+                return [boxWidth, boxHeight];
+            }
+            
+            let group = g.append("g")
+            $inspect(keyBoxDimensions())
+            group.append("rect")
+                .attr("x", 5)
+                .attr("y", 5)
+                .attr("height", keyBoxDimensions()[1])
+                .attr("width", keyBoxDimensions()[0])
+                .attr("fill", "#FEFFDF");
+
+            labels.forEach((_, i) => {
+                group.append("text")
+                    .attr("x", 5 + keyBoxDimensions()[0]/2)
+                    .attr("y", 18 + 15 * i)
+                    .attr("text-anchor", "middle")
+                    .style("font-size", "14px")
+                    .style("fill", usedColors[i])
+                    .text(labels[i]);
+            });
+
+            let xDrag = 0, yDrag = 0;
+
+            group.call(d3.drag<SVGGElement, undefined>()
+                .on("drag", (event) => {
+                    xDrag += event.dx;
+                    yDrag += event.dy;
+                    group.attr("transform", `translate(${xDrag}, ${yDrag})`);
+                })
+            );
+
+
         return svg.node();
     }
 
@@ -105,14 +167,6 @@
 
 
 <div {@attach attachGraph} bind:this={svgContainer} bind:clientWidth={width} class="m-5"></div>
-
-<div>
-    <p>Key:</p>
-    {#each labels as label, i}
-        <p style="color: {usedColors[i]}">{label}</p>
-    {/each}
-</div>
-
 <div class="flex justify-end">
     <SvgDownloadButton container={svgContainer} filename="line-graph" />
 </div>

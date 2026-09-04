@@ -95,7 +95,7 @@
         svg.selectAll("text")
             .data(performances)
             .join("text")
-            .attr('transform', (d,i)=>{
+            .attr('transform', (d, i) => {
                 return 'translate( '+(rectXs[i] + boxWidth / 2) +' , '+(rectY - (yShift[i]) + barHeight / 2)+'),'+ 'rotate(90)';})
             .attr("x", 0)
             .attr("y", 0)

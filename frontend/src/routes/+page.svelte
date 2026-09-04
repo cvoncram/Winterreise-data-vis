@@ -52,9 +52,9 @@
         </div>
 
 
-        <h3 class="text-3xl mb-5 ml-20">Where and when the recordings originated
-            <p class="float-right">Timeline 
-                <input type="checkbox" class="toggle text-xl" onchange={() => {viewMap = !viewMap}} /> Map
+        <h3 class="text-3xl mb-5 ml-20">Where and when these performances were recorded
+            <p class="float-right"> 
+                Timeline <input type="checkbox" class="toggle text-xl" onchange={() => {viewMap = !viewMap}} /> Map
             </p>
         </h3>
         
