@@ -1,6 +1,31 @@
+import math
 from typing import List, Optional, Dict
 import xml.etree.ElementTree as ET
 from config import MEI_NS
+
+
+def _as_float(value: Optional[str]) -> Optional[float]:
+    """
+    Parse a measurement, or None where there is none to be had.
+
+    Dynamics carries non-numeric readings such as "extreme" in rare cases, and
+    the timbre extraction has been seen to emit a literal "inf" — which
+    float() accepts without complaint. Infinities are rejected here rather
+    than left to propagate, since an infinite measurement is not one, and
+    downstream it would turn medians and residuals into NaN silently.
+
+    Mirrors _as_float in the database repository's stats/build_stats.py; the
+    two parsers must agree on what counts as a usable value, or the figures
+    computed there would not describe the data read here.
+    """
+    if value is None:
+        return None
+    try:
+        number = float(value)
+    except ValueError:
+        return None
+    return number if math.isfinite(number) else None
+
 
 def parse_rows(
     xml: str,
@@ -47,29 +72,15 @@ def parse_rows(
                 if measure_num_int == end and beat_num > end_beat:
                     continue
 
-            tempo_val = None
-            if i < len(tempos):
-                mm = tempos[i].attrib.get("mm")
-                if mm is not None:
-                    try:
-                        tempo_val = float(mm)
-                    except ValueError:
-                        pass
+            tempo_val = _as_float(tempos[i].attrib.get("mm")) if i < len(tempos) else None
 
-            dyn_val = None
-            intpr_dyn = None
-            if i < len(dyns):
-                dyn_val = dyns[i].attrib.get("n")
-                intpr_dyn = dyns[i].attrib.get("label")
+            # Two separate things live on the same element: the measured level
+            # in decibels, and a human-readable reading of it such as "mf+2".
+            # Only the former enters any computation.
+            dyn_val = _as_float(dyns[i].attrib.get("n")) if i < len(dyns) else None
+            intpr_dyn = dyns[i].attrib.get("label") if i < len(dyns) else None
 
-            timbre_val = None
-            if i < len(timbres):
-                n = timbres[i].attrib.get("n")
-                if n is not None:
-                    try:
-                        timbre_val = float(n)
-                    except ValueError:
-                        pass
+            timbre_val = _as_float(timbres[i].attrib.get("n")) if i < len(timbres) else None
 
             rows.append({
                 "measure": f"{measure_num}.{beat_num}",

@@ -89,15 +89,10 @@ def calculate_dtw(
         performances.append(rows_by_piece)
 
     def _is_usable(r, kind: str) -> bool:
-        value = r.get(kind)
-        if value is None:
-            return False
-        if kind == "dynamics":
-            try:
-                float(value)
-            except ValueError:
-                return False
-        return True
+        # The parser already rejects what cannot be measured — non-numeric
+        # dynamics readings and infinities alike — so absence is all that is
+        # left to test for.
+        return r.get(kind) is not None
 
     sequences = []
     for path, rows_by_piece in zip(paths, performances):

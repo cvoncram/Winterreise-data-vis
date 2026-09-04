@@ -62,11 +62,11 @@ def normalize_series(values: list, kind: Literal["tempo", "dynamics", "timbre"],
     if kind == "dynamics":
         median = reference.get("median")
         scale = reference.get("scale")
-        transformed = [float(v) for v in values]
+        transformed = list(values)
     else:
         median = reference.get("logMedian")
         scale = reference.get("scale")
-        transformed = [math.log(float(v)) for v in values if float(v) > 0]
+        transformed = [math.log(v) for v in values if v > 0]
 
     if median is None or not scale:
         return np.array(transformed, dtype=np.float64)

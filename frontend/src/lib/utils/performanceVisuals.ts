@@ -35,9 +35,8 @@ export function computeDynamicsUnit(rows: PerformanceRow[], reference: Normaliza
     if (median == null || !scale) return rows.map(() => 0.5);
 
     return rows.map(r => {
-        const raw = parseFloat(r.dynamics);
-        if (isNaN(raw)) return 0.5;
-        return zScoreToUnit((raw - median) / scale);
+        if (r.dynamics == null) return 0.5;
+        return zScoreToUnit((r.dynamics - median) / scale);
     });
 }
 
