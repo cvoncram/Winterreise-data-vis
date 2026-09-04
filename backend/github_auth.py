@@ -50,10 +50,21 @@ _cached_token = None
 _cached_token_expires_at = 0
 
 
+# GitHub rejects an App JWT whose lifetime exceeds ten minutes, measured as
+# `exp` minus `iat` — not as `exp` minus the current time. Backdating `iat` to
+# absorb clock skew therefore eats into the same allowance, and the two
+# together must stay under the limit. Nine minutes leaves room to spare; the
+# token is only ever used for the exchange immediately below, so a longer life
+# would buy nothing anyway.
+_JWT_BACKDATE = 60
+_JWT_LIFETIME = 9 * 60
+
+
 def generate_jwt():
+    issued_at = int(time.time()) - _JWT_BACKDATE
     payload = {
-        "iat": int(time.time()) - 60,
-        "exp": int(time.time()) + (10 * 60),
+        "iat": issued_at,
+        "exp": issued_at + _JWT_LIFETIME,
         "iss": APP_ID,
     }
     return jwt.encode(payload, PRIVATE_KEY, algorithm="RS256")
@@ -75,7 +86,19 @@ def get_installation_token():
     url = f"https://api.github.com/app/installations/{INSTALLATION_ID}/access_tokens"
 
     response = requests.post(url, headers=headers, timeout=10)
-    response.raise_for_status()
+    if not response.ok:
+        # GitHub explains authentication failures precisely — "'Expiration
+        # time' claim ('exp') is too far in the future", "A JSON web token
+        # could not be decoded" — and raise_for_status() discards that,
+        # leaving only a bare 401 to guess from.
+        try:
+            detail = response.json().get("message", response.text)
+        except ValueError:
+            detail = response.text
+        raise requests.exceptions.HTTPError(
+            f"GitHub refused the App token ({response.status_code}): {detail}",
+            response=response,
+        )
     data = response.json()
 
     _cached_token = data["token"]
