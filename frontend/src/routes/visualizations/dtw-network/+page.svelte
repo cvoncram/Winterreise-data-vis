@@ -1,5 +1,6 @@
 <script lang=ts>
     import DtwNetwork from "$lib/components/containers/DtwNetwork.svelte";
+    import DtwMatrix from "$lib/components/containers/DtwMatrix.svelte";
     import ScoreSelector from "$lib/components/partials/ScoreSelector.svelte";
     import MultiplePerformancesSelector from "$lib/components/partials/MultiplePerformancesSelector.svelte";
     import ParameterMultiSelector from "$lib/components/partials/ParameterMultiSelector.svelte";
@@ -73,6 +74,10 @@
             }
             pageState.nodes = newNodes;
             pageState.links = newLinks;
+            // The matrix keeps the refused pairs as nulls, which the links
+            // cannot carry — the triangle shows them as gaps.
+            pageState.matrix = result.normalizedMatrix;
+            pageState.matrixLabels = newNodes.map(node => node.label ?? String(node.id));
             pageState.warnings = (result.warnings ?? []).map(w => ({
                 pair: w.performances.map(p =>
                     pageState.allPerformances.find(a => a.path === p)?.label ?? p
@@ -117,6 +122,20 @@
             <button onclick={() => {pageState.analysisScope = ""}} class="btn btn-primary"> <p class="text-4xl">&lArr;</p> Change scope of analysis</button>
             
             {#if graphFinished}
+            <div class="card w-full bg-base-200 p-4 shadow-md gap-2 justify-start">
+                <button
+                    class={`btn btn-block ${pageState.active === "network" ? "btn-primary" : "bg-base-300"}`}
+                    onclick={() => (pageState.active = "network")}
+                >Show network</button>
+                <button
+                    class={`btn btn-block ${pageState.active === "matrix" ? "btn-primary" : "bg-base-300"}`}
+                    onclick={() => (pageState.active = "matrix")}
+                >Show matrix</button>
+            </div>
+            {/if}
+
+            <!-- Only the network is drawn from these; the matrix ignores them. -->
+            {#if graphFinished && pageState.active === "network"}
             <div class="card w-full bg-base-200 p-4 shadow-md justify-start">
                 <label>Node size
                     <input type="range" min="1" max="20" value={pageState.nodeSize} class="range range-s range-primary"
@@ -217,6 +236,8 @@
                 <div class="flex items-center justify-center w-full h-[80vh]">
                     <span class="loading loading-spinner loading-lg"></span>
                 </div>
+            {:else if pageState.active === "matrix"}
+                <DtwMatrix matrix={pageState.matrix} labels={pageState.matrixLabels} />
             {:else}
                 <DtwNetwork links={pageState.links} nodes={pageState.nodes} bind:linkWidth={pageState.linkWidth} bind:nodeSize={pageState.nodeSize} />
             {/if}
