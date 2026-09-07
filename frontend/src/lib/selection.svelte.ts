@@ -2,8 +2,7 @@ import type { PerformanceRow, PerformanceMetadata, NormalizationReference } from
 
 export const selection = $state({
 	/**
-	 * Set when "Compare with other performances" is clicked, cleared once the
-	 * target page has consumed it.
+	 * Set when "Compare with other performances" is clicked, cleared once the target page has consumed it.
 	 */
 	pending: false,
 	measures: [] as PerformanceRow[],

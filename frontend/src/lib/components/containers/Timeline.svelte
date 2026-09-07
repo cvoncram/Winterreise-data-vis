@@ -5,26 +5,20 @@
     let {performances}: {performances: PerformanceDetailed[]| undefined} = $props();
 
     let width = $state(0);
+    let clickContentDate = $state("");
+    let clickContentPlace = $state("");
+    let clickContentPlaceAdd = $state("");
+    let clickContentPianist = $state("");
+    let clickContentYear = $state(0);
+    let clickContentRecContext = $state("");
+    let clickContentMisc = $state("");
+    let clickContentInfo = $state("");
+    let clickContentNoInOrder = $state(0);
 
-    let popup: HTMLDivElement;
-
-    function showPopup(event: MouseEvent, content: string) {
-        popup.innerHTML = content;
-        popup.classList.remove("hidden");
-
-        const popupWidth = popup.offsetWidth;
-        const popupHeight = popup.offsetHeight;
-
-        popup.style.left = `${event.clientX - popupWidth - 12}px`;
-        popup.style.top = `${event.clientY - popupHeight - 12}px`;
-    }
+    let clickElement: HTMLDialogElement;
 
     function lastName(fullName: string){
         return fullName.split(" ")[1];
-    }
-
-    function hidePopup() {
-        popup.classList.add("hidden");
     }
 
     function determineYIndex(performances: PerformanceDetailed[]): number[] {
@@ -40,21 +34,39 @@
         return yIndices;
     }
 
+    function handleClick(event: Event){
+        const target = event.target as Element;
+
+        const rectEl = target.closest("rect") as SVGElement;
+        const textEl = target.closest("text.label-text") as SVGElement;
+        if ((!rectEl && !textEl) || !performances) return;
+
+        let element: SVGElement = (rectEl)? rectEl : textEl;
+        const id = parseInt(element.getAttribute("perf-id") ?? "NaN");
+
+        clickContentNoInOrder = id + 1;
+        clickContentPlaceAdd = (performances[id].placeAddendum != "")? ", " + performances[id].placeAddendum : " (exact place unknown)";
+        clickContentDate = performances[id].date;
+        clickContentPlace = `${performances[id].place}${clickContentPlaceAdd}`;
+        clickContentPianist = performances[id].pianist;
+        clickContentYear = performances[id].year;
+        clickContentMisc = performances[id].misc;
+        clickContentRecContext = performances[id].recordingContext;
+        clickContentInfo = performances[id].onlineInfo;
+        clickElement?.showModal();
+        
+    }
+    
+
     function createTimeline(performances: PerformanceDetailed[], width: number) {
 
         const height = 500;
         const margin = 20;
-
         const yIndex = determineYIndex(performances);
-        $inspect(yIndex);
 
         const svg = d3.create("svg")
             .attr("width", width)
-            .attr("height", height)
-            .on("click", (event: MouseEvent, _) => {
-                event.stopPropagation();
-                hidePopup();
-            });
+            .attr("height", height);
 
         const g = svg.append("g")
             .attr("transform", `translate(${margin}, ${margin}, ${margin}, ${margin})`);
@@ -87,10 +99,7 @@
                 .attr("y", (d, i) => rectY - yShift[i])
                 .attr("height", barHeight)
                 .attr("width", boxWidth)
-                .on("click", (event: MouseEvent, d) => {
-                    event.stopPropagation();
-                    showPopup(event, `${d.pianist}, ${d.place} ${d.year}`)
-                });
+                .attr("perf-id", (d, i) => i);
 
         svg.selectAll("text")
             .data(performances)
@@ -102,10 +111,8 @@
             .attr("text-anchor", "middle")
             .attr("dominant-baseline", "middle")
             .attr("fill", "white")
-            .on("click", (event: MouseEvent, d) => {
-                event.stopPropagation();
-                showPopup(event, `${d.pianist}, ${d.place} ${d.year}`)
-            })
+            .attr("class", "label-text")
+            .attr("perf-id", (d, i) => i)
             .text(d => (lastName(d.pianist) + " " + d.year));
 
         g.append("g")
@@ -117,19 +124,41 @@
     }
 
     function attachGraph(node: HTMLDivElement) {
+        node.addEventListener("click", handleClick);
         $effect(() => {
             if (!performances || performances.length === 0) return;
             node.innerHTML = '';
             const svg = createTimeline(performances, width);
             if (svg) node.appendChild(svg);
         });
-        return () => { node.innerHTML = ''; };
+        return () => {
+            node.innerHTML = '';
+            node.removeEventListener("click", handleClick)
+        };
     }
 
 </script>
 
 <div {@attach attachGraph} bind:clientWidth={width}></div>
-<div bind:this={popup} class="fixed bg-base-200 shadow-md rounded p-2 text-sm pointer-events-none hidden whitespace-pre-line"></div>
+
+<dialog bind:this={clickElement} class="modal">
+    <div class="modal-box">
+        <form method="dialog">
+            <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
+        </form>
+        <h3 class="text-lg font-bold">{clickContentNoInOrder}. {lastName(clickContentPianist)} {clickContentYear}</h3>
+        <p>Date: {clickContentDate}</p>
+        <p>Pianist: {clickContentPianist}</p>
+        <p>Place: {clickContentPlace}</p>
+        <p>Recording Context: {clickContentRecContext}</p>
+        {#if (clickContentInfo != "no value")}<p><a style="color: blue; text-decoration: underline;" href={clickContentInfo}>Click here for further information</a> (you will be redirected to an external site)</p>{/if}
+        {#if (clickContentMisc != "")}<p>{clickContentMisc}</p>{/if}
+        
+    </div>
+    <form method="dialog" class="modal-backdrop">
+        <button>close</button>
+    </form>
+</dialog>
 
 <style>
     :global(rect) {
@@ -138,5 +167,9 @@
 
     :global(svg text) {
         cursor: pointer;
+    }
+
+    .modal-box {
+        line-height: 3vh;
     }
 </style>

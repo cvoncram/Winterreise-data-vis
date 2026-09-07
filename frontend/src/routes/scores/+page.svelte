@@ -7,6 +7,7 @@
 
     let error = $state<string>('');
     let loading = $state(false);
+    let empty = $state(true);
 
     let scaleLabel = $derived(pageState.scale);
     let spacingPercentLabel = $derived(pageState.spacingPercent);
@@ -16,6 +17,7 @@
 
     async function fetchSelectedFile(file: SongInfo) {
         loading = true;
+        empty = false;
         try {
             const res = await fetch(
             `/db/file?path=${encodeURIComponent(file.path)}`
@@ -32,6 +34,7 @@
             pageState.meiContent = null;
         } finally {
             loading = false;
+            empty = false;
         }
     }
 
@@ -97,7 +100,15 @@
 
     <div class="ml-64 w-full p-4">
 
-        {#if loading}
+        {#if empty && !pageState.meiContent}
+            <div class="flex items-center justify-center w-full h-screen">
+                <p style="font-size: 20px">In the side bar on the left, you can choose any piece from the score to render in this page.<br><br>
+                The additions made by Dietrich Fischer-Dieskau to his own copy of the score are in <em style="color: blueviolet">violet</em>;<br>
+                additions by editors in later editions of the score are in <em style="color: brown">brown</em>.<br>
+                Click on any of Fischer-Dieskau's additions to view further information about their meanings and possible interpretations.
+                </p>
+            </div>
+        {:else if loading && !empty}
         <div class="flex items-center justify-center w-full h-[80vh]">
             <span class="loading loading-spinner loading-lg"></span>
         </div>

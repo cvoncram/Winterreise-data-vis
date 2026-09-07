@@ -2,7 +2,7 @@
     import { onMount } from 'svelte';
     import PageControls from '../partials/PageControls.svelte';
     
-    let {src, scale = $bindable(40), spacingPercent = $bindable(25), pageHeight = $bindable(600)}:
+    let {src, scale = $bindable(50), spacingPercent = $bindable(25), pageHeight = $bindable(1000)}:
         {src: string; scale: number; spacingPercent: number; pageHeight: number } = $props();
 
     let meiDocument: Document;

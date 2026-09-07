@@ -185,6 +185,7 @@ def list_performances_detailed():
             "place_addendum": p.get("Exact place") if p.get("Exact place") not in _MISSING else "",
             "coordinates": _disentangle_coordinates(p.get("coordinates")),
             "recording_context": p.get("Recording Context"),
+            "online_info": p.get("further information online"),
             "misc": p.get("misc") if p.get("misc") not in _MISSING else ""
         })
     return performances

@@ -56,6 +56,7 @@ export type PerformanceDetailed = {
     coordinates: number[];
     pianist: string;
     recordingContext: RecordingContext;
+    onlineInfo: string;
     misc: string
 }
 

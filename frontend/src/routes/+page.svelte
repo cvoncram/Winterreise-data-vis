@@ -21,6 +21,7 @@
                 coordinates: p.coordinates,
                 pianist: p.pianist,
                 recordingContext: p.recording_context,
+                onlineInfo: p.online_info,
                 misc: p.misc
             }))
 
@@ -47,7 +48,7 @@
                 in an extraordinarily long period of time from 1943 to 1991.<br><br>
                 <h4 class="text-2xl mb-2">What this application aims to accomplish</h4>
                 First, creating an <i>Interpretationsedition</i> based on Fischer-Dieskaus personal copy; incorporating his interpretative markings and directives. <a class="underline" href="/scores">Click here to view the annotated scores.</a><br> 
-                Second, examining 26 recordings from 1948 to 1990 by Fischer-Dieskau and 12 different pianists more closely, extracting audio analysis data and comparing these recordings to each other on the grounds of tempo, dynamics, and timbre data. <a class="underline" href="/visualizations">Click here to view the different analysis and visualization tools.</a>
+                Second, examining 26 recordings from 1948 to 1990 by Fischer-Dieskau and 12 different pianists closely, extracting audio analysis data and comparing these recordings to each other on the grounds of tempo, dynamics, and timbre data. <a class="underline" href="/visualizations">Click here to view the different analysis and visualization tools.</a>
             </div>
         </div>
 
