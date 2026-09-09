@@ -4,11 +4,11 @@
     let {title, description, pages, images, links, contents}: {title: string; description: string; pages: string[]; images: string[]; links: string[]; contents: string[]} = $props();
 </script>
 
-<div class="relative flex flex-col h-screen items-center px-[20%] overflow-hidden">
-    <div 
-        class="absolute inset-0 bg-cover bg-center opacity-50 bg-base-200"
-        style="background-image: url('/Winterreise_manuscript.jpg');">
-    </div>    
+<div class="relative flex flex-col h-screen items-center px-[20%] mt-5 mb-5 overflow-hidden">
+    <div
+    class="fixed inset-0 bg-cover bg-center opacity-50 bg-base-200 mb-auto"
+    style="background-image: url('/Winterreise_manuscript.jpg');">
+    </div>   
     <div class="bg-base-100 p-10 rounded-md shadow-xl opacity-90 h-full">
         <h3 class="text-3xl mb-5">{title}</h3>
         <div class="text-xl whitespace-pre">

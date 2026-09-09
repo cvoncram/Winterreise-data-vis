@@ -14,6 +14,8 @@
     let clickContentMisc = $state("");
     let clickContentInfo = $state("");
     let clickContentNoInOrder = $state(0);
+    let clickContentPianistGndNo = $state(0);
+    let clickContentPianistGndLink = $state("");
 
     let clickElement: HTMLDialogElement;
 
@@ -53,8 +55,9 @@
         clickContentMisc = performances[id].misc;
         clickContentRecContext = performances[id].recordingContext;
         clickContentInfo = performances[id].onlineInfo;
+        clickContentPianistGndNo = performances[id].gndNo;
+        clickContentPianistGndLink = `https://explore.gnd.network/gnd/${clickContentPianistGndNo}`
         clickElement?.showModal();
-        
     }
     
 
@@ -71,7 +74,7 @@
         const g = svg.append("g")
             .attr("transform", `translate(${margin}, ${margin}, ${margin}, ${margin})`);
 
-        const x = d3.scaleLinear([1945, 2000], [margin, width - margin]);
+        const x = d3.scaleLinear([1945, 1995], [margin, width - margin]);
         const boxWidth = width/30;
         const color = d3.scaleOrdinal(d3.schemeCategory10);
 
@@ -146,12 +149,34 @@
         <form method="dialog">
             <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
         </form>
-        <h3 class="text-lg font-bold">{clickContentNoInOrder}. {lastName(clickContentPianist)} {clickContentYear}</h3>
-        <p>Date: {clickContentDate}</p>
-        <p>Pianist: {clickContentPianist}</p>
-        <p>Place: {clickContentPlace}</p>
-        <p>Recording Context: {clickContentRecContext}</p>
-        {#if (clickContentInfo != "no value")}<p><a style="color: blue; text-decoration: underline;" href={clickContentInfo}>Click here for further information</a> (you will be redirected to an external site)</p>{/if}
+        <h3 class="text-lg font-bold mb-4">Recording #{clickContentNoInOrder}: {lastName(clickContentPianist)} {clickContentYear}</h3>
+        <table>
+            <tbody>
+                <tr>
+                    <td class="font-bold">Date</td>
+                    <td>{clickContentDate}</td>
+                </tr>
+                <tr>
+                    <td class="font-bold">Pianist</td>
+                    <td>{clickContentPianist} (GND entity <a style="color: #668ba4; text-decoration: underline;" href={clickContentPianistGndLink}>{clickContentPianistGndNo}</a>)</td>
+                </tr>
+                <tr>
+                    <td class="font-bold">Place</td>
+                    <td>{clickContentPlace}</td>
+                </tr>
+                <tr>
+                    <td class="font-bold">Recording Context</td>
+                    <td>{clickContentRecContext}</td>
+                </tr>
+                {#if (clickContentInfo != "no value")}
+                <tr>
+                    <td class="font-bold">Further information (external site)</td>
+                    <td><a style="color: #668ba4; text-decoration: underline;" href={clickContentInfo}>{clickContentInfo}</a></td>
+                </tr>
+                {/if}
+
+            </tbody>
+        </table>
         {#if (clickContentMisc != "")}<p>{clickContentMisc}</p>{/if}
         
     </div>
@@ -169,7 +194,9 @@
         cursor: pointer;
     }
 
-    .modal-box {
-        line-height: 3vh;
+    td {
+        border: 1px solid #668ba4;
+        padding: 3px;
+        width: 50%;
     }
 </style>

@@ -83,7 +83,10 @@
             g.append("path")
                 .attr("d", line(points))
                 .attr("fill", "none")
-                .attr("stroke", color(String(i)));
+                .attr("stroke-width", 2)
+                .attr("stroke", color(String(i)))
+                .append("title")
+                .text(labels[i]);
         });
 
         g.append("text")
@@ -110,7 +113,9 @@
                     default:
                         return ""
                 }
-            });
+            })
+            .append("title")
+            .text("y-axis unit");
 
             const keyBoxDimensions = () => {
                 let boxWidth = (Math.max(...labels.map(l => l.length)) * 7);
@@ -119,7 +124,6 @@
             }
             
             let group = g.append("g")
-            $inspect(keyBoxDimensions())
             group.append("rect")
                 .attr("x", 5)
                 .attr("y", 5)
@@ -147,6 +151,10 @@
                 })
             );
 
+            group.append("title")
+                .attr("class", "tooltip")
+                .text("You can drag and drop this key box. Its position will be saved when exporting an SVG");
+
 
         return svg.node();
     }
@@ -170,3 +178,11 @@
 <div class="flex justify-end">
     <SvgDownloadButton container={svgContainer} filename="line-graph" />
 </div>
+
+
+<style>
+    :global(g:has(> title.tooltip):hover){
+        cursor: help;
+    }
+
+</style>

@@ -17,7 +17,7 @@
 	<title>{title}</title>
 </svelte:head>
 
-<div class="navbar bg-base-200 shadow-sm z-50">
+<div class="navbar bg-base-200 shadow-sm relative z-50">
     <div id="home" class="page-title ml-10">
         <a href="/" id="home" title="home">
             <Logo />
@@ -51,10 +51,10 @@
     .page-title {
         justify-self: start;
     }
-    :global(svg path#path387-7) {
+    :global(.navbar svg path#path387-7) {
         fill:  #668ba4;
     }
-    :global(svg:hover path#path387-7) {
+    :global(.navbar svg:hover path#path387-7) {
         fill: var(--color-base-200);
     }
     div#home:hover{

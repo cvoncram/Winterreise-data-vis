@@ -57,6 +57,7 @@ export type PerformanceDetailed = {
     pianist: string;
     recordingContext: RecordingContext;
     onlineInfo: string;
+    gndNo: number;
     misc: string
 }
 
