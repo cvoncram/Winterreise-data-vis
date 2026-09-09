@@ -76,9 +76,6 @@
     
 </script>
 
-
-
-
 <div class="relative flex flex-col h-full items-center px-[20%] overflow-hidden">
     <div
     class="fixed inset-0 bg-cover bg-center opacity-50 bg-base-200 mb-auto"
@@ -265,13 +262,36 @@
         <p>Purely presentational options — the colour scheme, node size, edge width — are deliberately arranged to need no recomputation and take effect immediately.</p>
         
         <h2 use:registerHeading>About and Credits</h2>
-        <p>Frontend framework: SvelteKit<br>
-            UI components and animations: TailwindCSS, DaisyUI, and GSAP<br>
-            Visualizations: D3.JS<br>
-            Map: Leaflet and Sveaflet<br>
-            Backend framework: FastAPI<br>
-            MEI engraving engine: Verovio
-        </p>
+        <h3 use:registerHeading>Used frameworks and libraries</h3>
+        <table>
+            <tbody>
+                <tr>
+                    <td class="a">Frontend framework</td>
+                    <td class="b"><a href="https://svelte.dev/docs/kit/introduction">SvelteKit</a></td>
+                </tr>
+                <tr>
+                    <td class="a">UI components and animations</td>
+                    <td class="b"><a href="https://tailwindcss.com/">TailwindCSS</a><br><a href="https://daisyui.com">DaisyUI</a><br><a href="https://gsap.com">GSAP</a></td>
+                </tr>
+                <tr>
+                    <td class="a">Visualizations</td>
+                    <td class="b"><a href="https://d3js.org">d3.js</a></td>
+                </tr>
+                <tr>
+                    <td class="a">Map</td>
+                    <td class="b"><a href="https://leafletjs.com/">Leaflet</a><br><a href="https://sveaflet.vercel.app/">Sveaflet</a></td>
+                </tr>
+                <tr>
+                    <td class="a">Backend framework</td>
+                    <td class="b"><a href="https://fastapi.tiangolo.com/">FastAPI</a></td>
+                </tr>
+                <tr>
+                    <td class="a">MEI engraving</td>
+                    <td class="b"><a href="https://www.verovio.org/index.xhtml">Verovio</a></td>
+                </tr>
+            </tbody>
+        </table>
+ 
         <h3 use:registerHeading>Note on the use of Generative AI</h3>
         <p>Generative AI was used to help create some of the frontend components and parts of the backend routes. Additionally, it was used to translate parts of the application logic from pseudocode to machine-readable Python code.
         </p>
@@ -325,5 +345,27 @@
         margin-bottom: calc(var(--text-lg) / 3);
         margin-top: calc(var(--text-lg) / 3);
     }
+
+    table {
+        margin-top: calc(var(--spacing) * 3);
+        width: 75%
+    }
+
+    td {
+        width: 50%;
+        border: 1px dotted #668ba4;
+        padding: calc(var(--spacing) * 2);
+        font-size: var(--text-lg);
+        border-radius: 12px;
+    }
+
+    td a {
+        text-decoration: underline;
+        color: #668ba4;
+    }
+
+
+
+
     
 </style>

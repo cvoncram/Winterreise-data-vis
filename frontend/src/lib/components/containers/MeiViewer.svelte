@@ -2,8 +2,10 @@
     import { onMount } from 'svelte';
     import PageControls from '../partials/PageControls.svelte';
     
-    let {src, scale = $bindable(50), spacingPercent = $bindable(25), pageHeight = $bindable(1000)}:
-        {src: string; scale: number; spacingPercent: number; pageHeight: number } = $props();
+    let {src, scale = $bindable(50), spacingPercent = $bindable(25), pageHeight = $bindable(1000),
+         rendered = $bindable(false)}:
+        {src: string; scale: number; spacingPercent: number; pageHeight: number;
+         rendered?: boolean } = $props();
 
     let meiDocument: Document;
     
@@ -115,6 +117,7 @@
     
     function renderPage() {
         svg = vrvToolkit.renderToSVG(currentPage);
+        rendered = svg.length > 0;
     }
 
     // one function for all clicks (notes, annots, adds)
@@ -254,10 +257,7 @@
             const { VerovioToolkit } = await import('verovio/esm');
             const VerovioModule = await createVerovioModule();
             vrvToolkit = new VerovioToolkit(VerovioModule);
-            
-            await initMEI();
-            doLayout();
-            
+
             toolkitReady = true;
         } catch (e: any) {
             error = e.message;
@@ -266,11 +266,18 @@
         
     });
     
-    $effect (() => {
-        if (toolkitReady && src) {
-            initMEI();
-            doLayout();
-        }
+    $effect(() => {
+        if (!toolkitReady || !src) return;
+
+        rendered = false;
+
+        let frame = requestAnimationFrame(() => {
+            frame = requestAnimationFrame(() => {
+                initMEI();
+                doLayout();
+            });
+        });
+        return () => cancelAnimationFrame(frame);
     });
 
     function attachMeiContainer(node: HTMLDivElement) {
@@ -350,6 +357,7 @@
     .mei-svg :global(g.note:hover use) {
         fill: red;
         stroke: red;
+        cursor: pointer;
     }
     
     .mei-svg :global(g.supplied) {

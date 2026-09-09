@@ -8,16 +8,19 @@
     let error = $state<string>('');
     let loading = $state(false);
     let empty = $state(true);
+    let ready = $state(false);
 
     let scaleLabel = $derived(pageState.scale);
     let spacingPercentLabel = $derived(pageState.spacingPercent);
     let pageHeightLabel = $derived(pageState.pageHeight);
 
     let meiViewer = $state<ReturnType<typeof MeiViewer>>();
+    let scoreRendered = $state(false);
 
     async function fetchSelectedFile(file: SongInfo) {
         loading = true;
         empty = false;
+        scoreRendered = false;
         try {
             const res = await fetch(
             `/db/file?path=${encodeURIComponent(file.path)}`
@@ -98,7 +101,7 @@
 
     </div>
 
-    <div class="ml-64 w-full p-4">
+    <div class="ml-64 w-full min-h-[80vh] p-4">
 
         {#if empty && !pageState.meiContent}
             <div class="flex items-center justify-center w-full h-screen">
@@ -113,8 +116,13 @@
             <span class="loading loading-spinner loading-lg"></span>
         </div>
         {:else if pageState.meiContent}
-        <div class="card bg-base-100 p-2 w-full">
-            <MeiViewer bind:this={meiViewer} src={pageState.meiContent} bind:scale={pageState.scale} bind:spacingPercent={pageState.spacingPercent} bind:pageHeight={pageState.pageHeight}/>
+        <div class="card bg-base-100 p-2 w-full relative">
+            {#if !scoreRendered}
+                <div class="absolute inset-0 z-10 flex items-center justify-center bg-base-100/70">
+                    <span class="loading loading-spinner loading-lg"></span>
+                </div>
+            {/if}
+            <MeiViewer bind:this={meiViewer} bind:rendered={scoreRendered} src={pageState.meiContent} bind:scale={pageState.scale} bind:spacingPercent={pageState.spacingPercent} bind:pageHeight={pageState.pageHeight}/>
         </div>
         {/if}
 
