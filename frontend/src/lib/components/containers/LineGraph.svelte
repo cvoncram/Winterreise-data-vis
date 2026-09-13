@@ -153,7 +153,7 @@
 
             group.append("title")
                 .attr("class", "tooltip")
-                .text("You can drag and drop this key box. Its position will be saved when exporting an SVG");
+                .text("Drag and drop this key box, its position will be saved in the exported image");
 
 
         return svg.node();

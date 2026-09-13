@@ -1,6 +1,7 @@
 <script lang="ts">
     import { onMount } from 'svelte';
     import PageControls from '../partials/PageControls.svelte';
+	import type { HTMLAttributes } from 'svelte/elements';
     
     let {src, scale = $bindable(50), spacingPercent = $bindable(25), pageHeight = $bindable(1000),
          rendered = $bindable(false)}:
@@ -51,6 +52,54 @@
             }
         }
     }
+
+    // xml:id of an annotated element -> the annots pointing at it
+    let annotMap = new Map<string, Element[]>();
+
+    function buildAnnotMap(meiDoc: Document) {
+
+        annotMap.clear();
+
+        const all = Array.from(meiDoc.getElementsByTagName("*"));
+
+        for (const annot of Array.from(meiDoc.getElementsByTagName("annot"))) {
+            // annots inside add are handled in the addEl block
+            if (annot.closest("add")) continue;
+
+            const startEl = meiIdMap.get(annot.getAttribute("startid")?.replace("#", "") ?? "");
+            const endEl = meiIdMap.get(annot.getAttribute("endid")?.replace("#", "") ?? "");
+            const plist = annot.getAttribute("plist");
+
+            let scope: Element[] = [];
+
+            if (plist) {
+                // c) all listed elements
+                scope = plist.split(" ").map(ref => meiIdMap.get(ref.replace("#", ""))).filter(el => el !== undefined);
+            } else if (startEl && endEl) {
+                // b) start, end and everything in between in document order (endid sometimes precedes startid)
+                const [from, to] = [all.indexOf(startEl), all.indexOf(endEl)].sort((a, b) => a - b);
+                // only within the annot's staves: across a barline, the other staves' notes lie in between as well
+                const staves = annot.getAttribute("staff")?.split(" ")
+                    ?? [startEl, endEl].map(el => el.closest("staff")?.getAttribute("n") ?? el.getAttribute("staff") ?? "");
+
+                scope = all.slice(from, to + 1).filter(el =>
+                    el === startEl || el === endEl
+                    || (el.localName !== "staff" && el.localName !== "measure"
+                        // layer, beam or chord that open in between but close after the end
+                        && !el.contains(all[to])
+                        && staves.includes(el.closest("staff")?.getAttribute("n") ?? ""))
+                );
+            } else if (startEl) {
+                // a) only this one element
+                scope = [startEl];
+            }
+
+            for (const el of scope) {
+                const id = el.getAttribute("xml:id") ?? "";
+                annotMap.set(id, [...(annotMap.get(id) ?? []), annot]);
+            }
+        }
+    }
     
     function clampCurrentPage() {
         totalPages = vrvToolkit.getPageCount();
@@ -58,6 +107,10 @@
         if (currentPage < 1) currentPage = 1;
     }
     
+
+    /**
+     * Creates a hidden div element which renders all pages to determine the maximum height of all pages at the current layout.
+     */
     function computeMaxViewportHeight() {
         const pages = vrvToolkit.getPageCount();
         let maxHeight = 0;
@@ -89,6 +142,7 @@
             meiDocument = new DOMParser().parseFromString(src, "text/xml");
 
             buildMeiIdMap(meiDocument);
+            buildAnnotMap(meiDocument);
             
             vrvToolkit.loadData(src);
             
@@ -120,6 +174,16 @@
         rendered = svg.length > 0;
     }
 
+    let svgContainer: HTMLDivElement | undefined;
+
+    // colour the annotated elements after every render ({@html} replaces the nodes); the annot bar stays
+    $effect(() => {
+        if (!svg) return;
+        for (const id of annotMap.keys()) {
+            svgContainer?.querySelector(`[id="${id}"]`)?.classList.add("annotated");
+        }
+    });
+
     // one function for all clicks (notes, annots, adds)
     let clickContent = $state("");
     let clickType = $state("");
@@ -136,27 +200,123 @@
         const addEl = target.closest("g.add") as HTMLElement;
 
         if (noteEl) {
-            clickType = "Note";
-
+            
             const meiNote = meiIdMap.get(noteEl.id) || null;
             if (!meiNote) return;
+
+            const duration = () => {
+                let dur = 0;
+                let dots = 0;
+                if (meiNote.getAttribute("dur")) {
+                    dur = parseInt(meiNote.getAttribute("dur") ?? "");
+                    dots = meiNote.getAttribute("dots") ? parseInt(meiNote.getAttribute("dots") ?? "") : 0;
+                } else if (meiNote.parentElement?.tagName === "chord") {
+                    dur = parseInt(meiNote.parentElement?.getAttribute("dur") ?? "");
+                    dots = meiNote.parentElement?.getAttribute("dots") ? parseInt(meiNote.parentElement.getAttribute("dots") ?? "") : 0;
+                };
+                let durStr = "";
+                switch (dur) {
+                    case 1:
+                        durStr = "whole";
+                        break;
+                    case 2:
+                        durStr = "half";
+                        break;
+                    case 4:
+                        durStr = "quarter";
+                        break;
+                    case 8:
+                        durStr = "eighth";
+                        break;
+                    case 16:
+                        durStr = "sixteenth";
+                        break;
+                    case 32:
+                        durStr = "thirty-second";
+                        break;
+                    default:
+                        durStr = dur + "th";
+                        break;
+                }
+                if (dots > 0) durStr = (dots === 2 ? "double-dotted " : "dotted ") + durStr;
+
+                if (meiNote.closest("graceGrp")) return durStr + " grace note";
+                const tuplet = meiNote.closest("tuplet");
+                if (tuplet) return durStr + "-note " + (tuplet.getAttribute("num") === "3" ? "triplet" : "tuplet");
+                return durStr + " note";
+            }
+            
+            const staffAndMeasure = () => {
+                let staff = "";
+                let measure = "";
+
+                let parent = meiNote.parentElement;
+
+                while (parent && parent.tagName.toLowerCase() !== "measure") {
+                    parent = parent.parentElement;
+                    if (parent && parent.tagName.toLowerCase() == "staff") {
+                        staff = parent.getAttribute("n") ?? "";
+                    }                    
+                }
+                if (parent) {
+                    measure = parent.getAttribute("n") ?? "";
+                }
+                return [staff, measure];
+            } 
+
+            let syllable = "";
+            if (staffAndMeasure()[0] == "1") {
+                clickType = "Note and syllable in singing voice";
+                syllable = meiNote.getElementsByTagName("syl")[0].innerHTML;
+            } else {
+                clickType = "Note in piano voice"
+            };
 
             const pitch = meiNote.getAttribute("pname");
             const octave = meiNote.getAttribute("oct");
 
-            // Walk up DOM tree to find containing <measure>
-            let parent = meiNote.parentElement;
-            let measure = null;
+            // find and return accidentals
+            let accid = "";
+            let accidGes = false;
+            let accidAttr = null;
+            if (meiNote.getAttribute("accid.ges") != null) {
+                accidAttr = meiNote.getAttribute("accid.ges");
+                accidGes = true;
+            } else if (meiNote.getElementsByTagName("accid")[0]?.getAttribute("accid")) {
+                accidAttr = meiNote.getElementsByTagName("accid")[0]?.getAttribute("accid");
+            } else if (meiNote.getElementsByTagName("accid")[0]?.getAttribute("accid.ges")) {
+                accidAttr = meiNote.getElementsByTagName("accid")[0]?.getAttribute("accid.ges");
+                accidGes = true;
+            };
+            switch (accidAttr) {
+                case "s":
+                    accid = "\u{266F}";
+                    break;
+                case "f":
+                    accid = "\u{266D}";
+                    break;
+                case "n":
+                    accid = "\u{266E}";
+                    break;
+                case "ff":
+                    accid = "\u{1D12B}";
+                    break;
+                case "ss":
+                case "x":
+                    accid = "\u{1D12A}";
+                    break;
+            };
 
-            while (parent && parent.tagName.toLowerCase() !== "measure") {
-                parent = parent.parentElement;
-            }
+            // annots pointing at the note, its chord or its children (accid, verse, syl, artic);
+            // Set, because a start/end range contains the note and its verse and syl alike
+            const annots = new Set([meiNote, meiNote.closest("chord"), ...Array.from(meiNote.getElementsByTagName("*"))]
+                .flatMap(el => annotMap.get(el?.getAttribute("xml:id") ?? "") ?? []));
+            const annotText = Array.from(annots).map(a => a.textContent?.trim()).filter(Boolean).join("; ");
 
-            if (parent) {
-                measure = parent.getAttribute("n");
-            }
-
-            clickContent = "Note: " + pitch + octave + "\nMeasure: " + measure;
+            clickContent = "Note: " + pitch + accid + octave + (accidGes? " (gestural accidental)" : "")
+                + "\nLength: " + duration()
+                + "\nMeasure: " + staffAndMeasure()[1] + (syllable !== "" ? "\nSyllable: " + syllable : "")
+                + (annotText !== "" ? "\nAdditional information: " + annotText : "");
             clickElement?.showModal();
 
         } else if (annotEl) {
@@ -291,7 +451,7 @@
     {#if error}
         <p class="text-error">{error}</p>
     {/if}
-    <div class="mei-svg w-full" bind:clientWidth={pageWidth} {@attach attachMeiContainer}>
+    <div class="mei-svg w-full" bind:this={svgContainer} bind:clientWidth={pageWidth} {@attach attachMeiContainer}>
         {@html svg}
     </div>
 
@@ -333,7 +493,7 @@
     
     .mei-svg {
         width: 100%;
-        height: var(--viewport-height);
+        height: 100%;
         overflow: hidden;
         display: flex;
         justify-content: center;
@@ -348,13 +508,11 @@
         background-color: rgba(254, 255, 223, .5);
     }
     
-    .mei-svg :global(g.note path),
-    .mei-svg :global(g.note use) {
+    .mei-svg :global(g.note) {
         transition: fill 0.15s ease, stroke 0.15s ease;
     }
     
-    .mei-svg :global(g.note:hover path),
-    .mei-svg :global(g.note:hover use) {
+    .mei-svg :global(g.note:hover) {
         fill: red;
         stroke: red;
         cursor: pointer;
@@ -371,7 +529,13 @@
         color: brown;
         stroke: brown;
         fill: brown;
-        
+
+    }
+
+    .mei-svg :global(g.annotated) {
+        color: darkcyan;
+        stroke: darkcyan;
+        fill: darkcyan;
     }
     
     .mei-svg :global(g[data-source="#dwdfdc9075d0e-7aaa-4a82-bfa0-06eb81584587"]) {

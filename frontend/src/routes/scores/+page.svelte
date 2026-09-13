@@ -8,7 +8,6 @@
     let error = $state<string>('');
     let loading = $state(false);
     let empty = $state(true);
-    let ready = $state(false);
 
     let scaleLabel = $derived(pageState.scale);
     let spacingPercentLabel = $derived(pageState.spacingPercent);
