@@ -26,17 +26,17 @@ export function zScoreToUnit(z: number, clamp = 2): number {
 
 /**
  * Per-beat dynamics expressed as a [0,1] unit value: how far this beat's raw
- * dB value sits from the reference recording/piece's own median, divided by
- * the corpus-wide scale figure and clamped.
+ * dB value sits from the reference recording/piece's own centre (mean by
+ * default), divided by the corpus-wide scale figure and clamped.
  */
 export function computeDynamicsUnit(rows: PerformanceRow[], reference: NormalizationReference | null): number[] {
-    const median = reference?.dynamics?.median;
+    const center = reference?.dynamics?.center;
     const scale = reference?.dynamics?.scale;
-    if (median == null || !scale) return rows.map(() => 0.5);
+    if (center == null || !scale) return rows.map(() => 0.5);
 
     return rows.map(r => {
         if (r.dynamics == null) return 0.5;
-        return zScoreToUnit((r.dynamics - median) / scale);
+        return zScoreToUnit((r.dynamics - center) / scale);
     });
 }
 
@@ -45,12 +45,12 @@ export function computeDynamicsUnit(rows: PerformanceRow[], reference: Normaliza
  * computeDynamicsUnit but on log-transformed spectral centroid.
  */
 export function computeTimbreUnit(rows: PerformanceRow[], reference: NormalizationReference | null): number[] {
-    const logMedian = reference?.timbre?.logMedian;
+    const logCenter = reference?.timbre?.logCenter;
     const scale = reference?.timbre?.scale;
-    if (logMedian == null || !scale) return rows.map(() => 0.5);
+    if (logCenter == null || !scale) return rows.map(() => 0.5);
 
     return rows.map(r => {
         if (r.timbre == null || r.timbre <= 0) return 0.5;
-        return zScoreToUnit((Math.log(r.timbre) - logMedian) / scale);
+        return zScoreToUnit((Math.log(r.timbre) - logCenter) / scale);
     });
 }

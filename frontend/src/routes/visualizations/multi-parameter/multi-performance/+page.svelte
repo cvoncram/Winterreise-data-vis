@@ -237,7 +237,7 @@
         </div>
     </aside>
 
-    <main class="flex-1 flex gap-4 p-6 overflow-hidden">
+    <main class="flex-1 flex gap-4 p-6 overflow-hidden min-h-screen">
         <!-- The morph overlay stands in for the first ribbon until it lands. -->
         <div class="w-[50%] overflow-auto" bind:this={ribbonList}
              style:opacity={morph.active ? 0 : 1}>

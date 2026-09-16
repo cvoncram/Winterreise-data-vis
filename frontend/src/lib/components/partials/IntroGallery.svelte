@@ -13,8 +13,8 @@
 <div class="flex flex-row gap-4">
 
     {#each titles as title, i}
-    <div class="flex flex-col">
-        <a href={links[i]} style:max-width="{100 / images.length}%" class="hover-3d cursor-pointer" onmouseenter={() => hovered[i]=true} onfocus={() => hovered[i]=true} onmouseleave={() => hovered[i]=false} onblur={()=> hovered[i]=false}>
+    <div style:width="{100 / images.length}%" class="flex flex-col">
+        <a href={links[i]} class="hover-3d cursor-pointer" onmouseenter={() => hovered[i]=true} onfocus={() => hovered[i]=true} onmouseleave={() => hovered[i]=false} onblur={()=> hovered[i]=false}>
 
             <!-- content -->
             <div class="min-w-85 min-h-60 max-h-100 card">

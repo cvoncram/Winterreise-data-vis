@@ -19,9 +19,10 @@ export type PerformanceMetadata = {
 };
 
 export type NormalizationReference = {
-    dynamics: { median: number | null; scale: number | null };
-    timbre: { logMedian: number | null; scale: number | null };
+    dynamics: { center: number | null; scale: number | null };
+    timbre: { logCenter: number | null; scale: number | null };
     available?: boolean;
+    method?: "mean" | "median";
 };
 
 export type Parameter = keyof Pick<PerformanceRow, "tempo" | "dynamics" | "timbre">;
@@ -46,6 +47,11 @@ export type CyclePerformance = {
     normalizationReference?: NormalizationReference;
     path: string;
     label: string;
+    /** From performances.json, matched to the folder by the backend. */
+    year?: number | null;
+    pianist?: string | null;
+    city?: string | null;
+    recordingContext?: string | null;
 }
 
 export type PerformanceDetailed = {

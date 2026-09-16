@@ -13,17 +13,21 @@
      * simulation to compute here, only a grid of rectangles, and the markup is
      * easier to follow than an imperative redraw would be.
      */
-    let { matrix, labels }: {
+    let { matrix, labels, onSelectPair }: {
         matrix: (number | null)[][];
         labels: string[];
+        /** Indices into the same order the labels are in, so the caller can name the pair. */
+        onSelectPair?: (a: number, b: number) => void;
     } = $props();
 
     /** Sequential single hue, light to dark — magnitude, not identity. */
     const RAMP = ["#cde2fb", "#9ec5f4", "#6da7ec", "#3987e5", "#256abf", "#184f95", "#0d366b"];
 
     const n = $derived(matrix.length);
-    // Wide enough to read, small enough that 26 recordings still fit.
-    const cell = $derived(Math.max(14, Math.min(30, Math.round(560 / Math.max(n, 1)))));
+    // Wide enough to read and to hit with a pointer, small enough that 26
+    // recordings still fit on a screen.
+    const cell = $derived(Math.max(28, Math.min(60, Math.round(1120 / Math.max(n, 1)))));
+    const font = $derived(Math.min(18, Math.max(10, cell * 0.45)));
     const labelGap = 6;
 
     const extent = $derived.by(() => {
@@ -49,7 +53,7 @@
 
     // Room for the longest name, which sits at the end of the last row.
     const labelWidth = $derived(
-        Math.max(120, ...labels.map(l => l.length * 6.6)) + labelGap
+        Math.max(160, ...labels.map(l => l.length * font * 0.55)) + labelGap
     );
     const width = $derived(n * cell + labelWidth + 16);
     const height = $derived(n * cell + 16);
@@ -91,7 +95,10 @@
                             stroke-opacity={value == null ? 0.18 : 0.08}
                             stroke-width="0.7"
                             stroke-dasharray={value == null ? "2 2" : undefined}
-                            role="img"
+                            role="button"
+                            aria-disabled={value == null}
+                            tabindex={value == null ? undefined : 0}
+                            class={value == null ? "" : "cursor-pointer"}
                             aria-label={value == null
                                 ? `${labels[j]} and ${labels[i]}: not comparable`
                                 : `${labels[j]} and ${labels[i]}: ${fmt(value)} per beat`}
@@ -99,12 +106,18 @@
                                 (hovered = value == null
                                     ? null
                                     : { a: labels[j], b: labels[i], value })}
+                            onclick={() => value != null && onSelectPair?.(j, i)}
+                            onkeydown={(event) => {
+                                if (value == null || (event.key !== "Enter" && event.key !== " ")) return;
+                                event.preventDefault();
+                                onSelectPair?.(j, i);
+                            }}
                         />
                     {/each}
                     <text
                         x={8 + i * cell + labelGap}
                         y={8 + i * cell + cell - Math.max(4, cell * 0.28)}
-                        font-size={Math.min(12, cell * 0.62)}
+                        font-size={font}
                         fill="currentColor"
                         fill-opacity="0.75"
                     >{labels[i]}</text>
@@ -120,7 +133,7 @@
                 <span class="font-mono ml-2">{fmt(hovered.value)}</span>
                 <span class="opacity-70"> per beat</span>
             {:else}
-                <span class="opacity-60">Point at a cell to read the pair. Dashed cells were not comparable.</span>
+                <span class="opacity-60">Point at a cell to read the pair, click it for the full comparison. Dashed cells were not comparable.</span>
             {/if}
         </div>
     </div>

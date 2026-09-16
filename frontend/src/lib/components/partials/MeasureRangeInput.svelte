@@ -10,13 +10,13 @@
 <div class="bg-base-100 p-4 rounded-lg shadow flex flex-col items-start overflow-visible w-full">
 	<span class="label-text mb-2 text-lg font-semibold">Measure range</span>
 	<label class="label w-full justify-between">Start measure
-		<input type="number" min="1" class="input input-bordered w-24" bind:value={start} />
+		<input type="number" min="0" class="input input-bordered w-24" bind:value={start} />
 	</label>
 	<label class="label w-full justify-between">Start beat
 		<input type="number" min="1" class="input input-bordered w-24" bind:value={startBeat} />
 	</label>
 	<label class="label w-full justify-between">End measure
-		<input type="number" min="1" class="input input-bordered w-24" bind:value={end} />
+		<input type="number" min="0" class="input input-bordered w-24" bind:value={end} />
 	</label>
 	<label class="label w-full justify-between">End beat
 		<input type="number" min="1" class="input input-bordered w-24" bind:value={endBeat} />
