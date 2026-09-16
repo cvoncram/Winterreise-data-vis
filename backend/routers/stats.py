@@ -1,5 +1,8 @@
+from typing import Literal
+
 from fastapi import APIRouter, HTTPException
 
+from services.githubClient import clear_file_cache
 from services.pathSafety import is_safe_folder_name
 from services.statsCalc import (
     clear_cache,
@@ -20,7 +23,7 @@ def get_corpus():
 @router.get("/db/stats/performances")
 def get_performance_stats(performance: str):
     """
-    Medians for one recording. Scoped to a single recording rather than the
+    Means and medians for one recording. Scoped to a single recording rather than the
     whole corpus, since each one is a separate file in the database repo.
     """
     if not is_safe_folder_name(performance):
@@ -38,18 +41,22 @@ def get_stats_report():
 
 
 @router.get("/db/stats/normalization-reference")
-def get_normalization_reference_route(performance: str, piece: int):
+def get_normalization_reference_route(
+    performance: str, piece: int, method: Literal["mean", "median"] = "mean"
+):
     if not is_safe_folder_name(performance):
         raise HTTPException(status_code=400, detail="Invalid performance path")
-    return get_normalization_reference(performance, piece, scope="piece")
+    return get_normalization_reference(performance, piece, scope="piece", method=method)
 
 
 @router.post("/db/stats/refresh")
 def refresh():
     """
-    Drop the process cache so the next read picks up a freshly built set of
-    statistics without waiting for the cache to expire. The statistics
-    themselves are built in the database repository, not here.
+    Drop the process caches so the next read picks up freshly built
+    statistics and freshly pushed performance data without waiting for them
+    to expire. The statistics themselves are built in the database
+    repository, not here.
     """
     clear_cache()
+    clear_file_cache()
     return {"cleared": True}

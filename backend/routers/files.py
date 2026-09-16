@@ -15,7 +15,9 @@ def get_file(path: str):
     return Response(content=content, media_type="application/xml")
 
 @router.get("/db/file-measures")
-def get_file_measures(piece: int, start: int = Query(ge=1), end: int = Query(ge=1)):
+# Measure 0 is the pickup: eight of the songs begin with one, and the
+# performance data numbers it 0. Beats keep their lower bound of 1.
+def get_file_measures(piece: int, start: int = Query(ge=0), end: int = Query(ge=0)):
 
     if not 1 <= piece <= len(TITLES):
         raise HTTPException(status_code=404, detail="Piece not found")
@@ -41,9 +43,9 @@ def parse_mei(path: str):
 @router.get("/db/parsed-measures")
 def parse_files(
         piece: int,
-        start: int = Query(ge=1),
+        start: int = Query(ge=0),
         start_beat: int = Query(ge=1),
-        end: int = Query(ge=1),
+        end: int = Query(ge=0),
         end_beat: int = Query(ge=1),
         paths: list[str] = Query(...)
     ):

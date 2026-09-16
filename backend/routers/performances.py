@@ -127,7 +127,14 @@ def list_performances():
 
         enriched.append({
             "path": folder_name,
-            "label": label
+            "label": label,
+            # Carried along so that a visualization can colour by them: the
+            # folder is the only place where recording and metadata meet, and
+            # the match is worked out here already.
+            "year": year,
+            "pianist": pianist,
+            "city": city,
+            "recordingContext": perf_meta.get("Recording Context") if perf_meta else None
         })
 
     return sorted(enriched, key=lambda x: x["label"])
