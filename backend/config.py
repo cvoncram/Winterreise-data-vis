@@ -1,5 +1,5 @@
 OWNER = "cvoncram"
-REPO = "Winterreise-database-test"
+REPO = "Winterreise-database"
 BRANCH = "main"
 
 SCORES_PREFIX = "scores/"
