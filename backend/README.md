@@ -10,56 +10,60 @@ Installation and start-up are described in the [project README](../README.md).
 
 ```
 backend/
-├── main.py              application instance, CORS, router registration, /health
-├── config.py            work-bound constants: repository, namespaces, piece titles
+├── main.py              app instance, CORS, routers, /health
+├── config.py            repository, MEI namespaces, song titles
 ├── github_auth.py       authentication as a GitHub App
 ├── requirements.txt     pinned dependencies
 ├── Dockerfile
-├── routers/             HTTP layer
-└── services/            domain logic, no knowledge of HTTP
+├── routers/             endpoints (HTTP layer)
+├── services/            data access and computations
+└── static/              favicon
 ```
-
-### The division between routers and services
-
-A router contains only what has to do with the HTTP protocol: declaring path
-and method, accepting and checking parameters, translating failures into status
-codes, assembling the response. Everything else lives in `services/`, in
-modules that know nothing of HTTP and can therefore be called with constructed
-inputs and checked in isolation — which matters most for the numerically
-demanding parts, where correctness is hardest to establish by inspection.
 
 ### `routers/`
 
 | File | Endpoints |
 |---|---|
-| `files.py` | `/db/file`, `/db/file-measures`, `/db/parsed-file`, `/db/parsed-measures` — MEI as raw text or already parsed, optionally cut to a range of measures |
-| `scores.py` | `/db/scores-folder` — the score directory as a sorted tree |
-| `performances.py` | `/db/performances`, `/db/performance-files` — recordings and the pieces each contains |
-| `analysis.py` | `/db/analysis` — the distance matrix, the most parameter-rich endpoint |
-| `stats.py` | `/db/stats/…` — normalization figures, data-quality report, cache refresh |
+| `files.py` | `/db/file`, `/db/file-measures`, `/db/parsed-file`, `/db/parsed-measures`: MEI as text or parsed rows, optionally cut to a measure range |
+| `scores.py` | `/db/scores-folder`: the score directory as a sorted tree |
+| `performances.py` | `/db/performances` (recordings with year, pianist, city, context), `/db/performance-files` (songs per recording), `/db/performances-detailed` (metadata for timeline and map) |
+| `analysis.py` | `/db/analysis` (distance and τ matrices), `/db/analysis/stream` (the same as server-sent events with progress), `/db/analysis/pair` (detail view of one pair) |
+| `stats.py` | `/db/stats/corpus`, `/db/stats/performances`, `/db/stats/report`, `/db/stats/normalization-reference`, `/db/stats/refresh` (clears the caches) |
 
 ### `services/`
 
 | File | Purpose |
 |---|---|
-| `githubClient.py` | Every outgoing call to GitHub, in three functions: file contents, directory listing, full file tree. Base URLs, headers, base64 decoding and timeouts are thus stated exactly once. |
-| `pathSafety.py` | Two checks ensuring that a path supplied by the client cannot leave the permitted area. Small but security-critical: the backend is unauthenticated access to a private repository, and this restriction is what confines it. |
-| `meiParser.py` | Turns MEI documents into the row structure the application works with, extracts the calibration block, and cuts scores to a range of measures. |
-| `statsCalc.py` | Reads the normalization figures held in the database repository, keeps them briefly in memory, and selects those the requested scope calls for. Nothing is computed here — that happens in a GitHub Action in the database repository. |
-| `dtwCalc.py` | Normalization of individual series and the pairwise distances. The alignment itself comes from `scipy` and `dtw-python`; what remains here is the assembly of the matrix and the guards against comparing recordings that do not line up. |
+| `githubClient.py` | All requests to the GitHub API: file contents, directory listings, file tree; caches files for ten minutes. |
+| `pathSafety.py` | Checks that paths from the client stay inside the permitted directories. |
+| `meiParser.py` | Turns performance MEI files into per-beat rows, reads the calibration block, cuts scores to a measure range. |
+| `statsCalc.py` | Reads the precomputed statistics from the database repository (cached for five minutes) and returns centres, scales and the covariance for a given scope and method. |
+| `dtwCalc.py` | Normalization, DTW distances, Kendall's τ along the alignment path, τ floor, largest differences per pair. |
 
-### Other directories
+### Analysis
 
-`static/` holds the favicon, the one file served unprocessed. `venv/` and
-`__pycache__/` are working directories and belong to neither the repository nor
-the container image.
+1. For each selected recording, the beats of every song in the scope are
+   loaded; a beat is used only if every selected parameter has a value.
+2. Each series is normalized: `(value − centre) / scale`, tempo and timbre on a
+   log scale. Default method: mean/SD; alternatively median/MAD
+   (`normalization=median`). Centres for dynamics and timbre are per recording,
+   for tempo corpus-wide; scales are corpus-wide, per song or for the cycle
+   depending on the scope.
+3. Every song is aligned separately with DTW (`dtw-python`, step pattern
+   `symmetric1`, Sakoe-Chiba band `|n − m| + 2`); local costs are Euclidean
+   (optionally weighted) or Mahalanobis (corpus covariance) via `scipy`.
+4. A pair is refused if a song is missing in one recording, has no usable
+   beats, or the beat counts differ by more than 3.
+5. Results per pair: summed cost, cost per beat (sum divided by
+   Σ max(n, m)), and Kendall's τ-b along the same path, averaged over songs
+   and parameters.
 
-### The private key
+### Private key
 
-The GitHub App's signing key is the one secret the system holds. It is expected
-beside `github_auth.py`, is excluded from version control by `.gitignore` and
-from the image by `.dockerignore`, and is mounted at run time under Docker.
-`GITHUB_PRIVATE_KEY_PATH` points it elsewhere.
+Expected next to `github_auth.py` or at `GITHUB_PRIVATE_KEY_PATH`. Excluded
+by `.gitignore` and `.dockerignore`; under Docker it is mounted as a secret.
+
+Note: This documentation was generated with the help of Generative AI.
 
 ---
 
@@ -67,56 +71,60 @@ from the image by `.dockerignore`, and is mounted at run time under Docker.
 
 ```
 backend/
-├── main.py              Anwendungsinstanz, CORS, Registrierung der Router, /health
-├── config.py            werkgebundene Konstanten: Repositorium, Namensräume, Liedtitel
+├── main.py              Anwendungsinstanz, CORS, Router, /health
+├── config.py            Repositorium, MEI-Namensräume, Liedtitel
 ├── github_auth.py       Authentifizierung als GitHub App
 ├── requirements.txt     festgelegte Abhängigkeiten
 ├── Dockerfile
-├── routers/             HTTP-Schicht
-└── services/            Fachlogik, ohne Kenntnis von HTTP
+├── routers/             Endpunkte (HTTP-Schicht)
+├── services/            Datenzugriff und Berechnungen
+└── static/              Favicon
 ```
-
-### Die Trennung von Routern und Services
-
-Ein Router enthält ausschließlich das, was mit dem HTTP-Protokoll zu tun hat:
-die Deklaration von Pfad und Methode, die Entgegennahme und Prüfung der
-Parameter, die Übersetzung von Fehlzuständen in Statuscodes und die
-Zusammenstellung der Antwort. Alles Übrige liegt in `services/`, in Modulen
-ohne jede Kenntnis von HTTP, die sich folglich mit konstruierten Eingaben
-aufrufen und isoliert prüfen lassen — was vor allem bei den numerisch
-anspruchsvollen Teilen zählt, deren Korrektheit sich am schwersten durch
-bloßes Lesen feststellen lässt.
 
 ### `routers/`
 
 | Datei | Endpunkte |
 |---|---|
-| `files.py` | `/db/file`, `/db/file-measures`, `/db/parsed-file`, `/db/parsed-measures` — MEI als Rohtext oder bereits geparst, wahlweise auf einen Taktbereich beschnitten |
-| `scores.py` | `/db/scores-folder` — das Partiturverzeichnis als sortierter Baum |
-| `performances.py` | `/db/performances`, `/db/performance-files` — Aufnahmen und die darin enthaltenen Lieder |
-| `analysis.py` | `/db/analysis` — die Distanzmatrix, der parameterreichste Endpunkt |
-| `stats.py` | `/db/stats/…` — Normalisierungsgrößen, Datenqualitätsbericht, Leeren des Zwischenspeichers |
+| `files.py` | `/db/file`, `/db/file-measures`, `/db/parsed-file`, `/db/parsed-measures`: MEI als Text oder geparste Zeilen, wahlweise auf einen Taktbereich beschnitten |
+| `scores.py` | `/db/scores-folder`: das Partiturverzeichnis als sortierter Baum |
+| `performances.py` | `/db/performances` (Aufnahmen mit Jahr, Pianist, Ort, Kontext), `/db/performance-files` (Lieder je Aufnahme), `/db/performances-detailed` (Metadaten für Zeitleiste und Karte) |
+| `analysis.py` | `/db/analysis` (Distanz- und τ-Matrix), `/db/analysis/stream` (dasselbe als Server-Sent Events mit Fortschritt), `/db/analysis/pair` (Detailansicht eines Paares) |
+| `stats.py` | `/db/stats/corpus`, `/db/stats/performances`, `/db/stats/report`, `/db/stats/normalization-reference`, `/db/stats/refresh` (leert die Zwischenspeicher) |
 
 ### `services/`
 
 | Datei | Zweck |
 |---|---|
-| `githubClient.py` | Sämtliche ausgehenden Aufrufe an GitHub, in drei Funktionen: Dateiinhalt, Verzeichnisliste, vollständiger Dateibaum. Basis-URLs, Kopfzeilen, Base64-Dekodierung und Zeitlimits sind damit genau einmal formuliert. |
-| `pathSafety.py` | Zwei Prüfungen, die sicherstellen, dass ein vom Client übergebener Pfad den zulässigen Bereich nicht verlässt. Klein, aber sicherheitskritisch: Das Backend ist ein unauthentifizierter Zugang zu einem privaten Repositorium, und diese Beschränkung ist es, die ihn eingrenzt. |
-| `meiParser.py` | Überführt MEI-Dokumente in die Zeilenstruktur der Anwendung, entnimmt den Kalibrierungsblock und beschneidet Partituren auf einen Taktbereich. |
-| `statsCalc.py` | Liest die im Datenbank-Repositorium hinterlegten Normalisierungsgrößen, hält sie kurz im Arbeitsspeicher vor und wählt daraus diejenigen aus, die der angefragte Geltungsbereich verlangt. Berechnet wird hier nichts — das geschieht in einer GitHub-Action im Datenbank-Repositorium. |
-| `dtwCalc.py` | Normalisierung einzelner Messreihen und die paarweisen Distanzen. Die Ausrichtung selbst stammt aus `scipy` und `dtw-python`; hier verbleiben der Aufbau der Matrix und die Absicherung gegen Vergleiche zwischen Aufnahmen, die sich nicht decken. |
+| `githubClient.py` | Alle Anfragen an die GitHub-API: Dateiinhalte, Verzeichnislisten, Dateibaum; hält Dateien zehn Minuten im Zwischenspeicher. |
+| `pathSafety.py` | Prüft, dass Pfade vom Client in den zulässigen Verzeichnissen bleiben. |
+| `meiParser.py` | Überführt Performance-MEI-Dateien in schlagweise Zeilen, liest den Kalibrierungsblock, beschneidet Partituren auf einen Taktbereich. |
+| `statsCalc.py` | Liest die vorberechneten Statistiken aus dem Datenbank-Repositorium (fünf Minuten zwischengespeichert) und liefert Zentren, Skalen und Kovarianz für Geltungsbereich und Methode. |
+| `dtwCalc.py` | Normalisierung, DTW-Distanzen, Kendalls τ entlang des Ausrichtungspfads, τ-Untergrenze, größte Unterschiede je Paar. |
 
-### Weitere Verzeichnisse
+### Analyse
 
-In `static/` liegt das Adressleistensymbol, die einzige unverarbeitet
-ausgelieferte Datei. `venv/` und `__pycache__/` sind Arbeitsverzeichnisse und
-gehören weder ins Repositorium noch ins Container-Abbild.
+1. Für jede ausgewählte Aufnahme werden die Schläge aller Lieder im
+   Geltungsbereich geladen; ein Schlag zählt nur, wenn jeder ausgewählte
+   Parameter einen Wert hat.
+2. Jede Messreihe wird normalisiert: `(Wert − Zentrum) / Skala`, Tempo und
+   Klangfarbe logarithmiert. Standard: Mittelwert/Standardabweichung; alternativ
+   Median/MAD (`normalization=median`). Zentren für Dynamik und Klangfarbe je
+   Aufnahme, für Tempo korpusweit; Skalen korpusweit, je nach Geltungsbereich
+   pro Lied oder für den Zyklus.
+3. Jedes Lied wird einzeln mit DTW ausgerichtet (`dtw-python`, Schrittmuster
+   `symmetric1`, Sakoe-Chiba-Band `|n − m| + 2`); lokale Kosten euklidisch
+   (wahlweise gewichtet) oder Mahalanobis (Korpus-Kovarianz) über `scipy`.
+4. Ein Paar wird abgelehnt, wenn ein Lied in einer Aufnahme fehlt, keine
+   verwertbaren Schläge hat oder die Schlagzahlen um mehr als 3 abweichen.
+5. Ergebnisse je Paar: summierte Kosten, Kosten pro Schlag (Summe geteilt durch
+   Σ max(n, m)) und Kendalls τ-b entlang desselben Pfads, gemittelt über
+   Lieder und Parameter.
 
-### Der private Schlüssel
+### Privater Schlüssel
 
-Der Signierschlüssel der GitHub App ist das einzige Geheimnis des Systems. Er
-wird neben `github_auth.py` erwartet, ist über `.gitignore` von der
-Versionskontrolle und über `.dockerignore` vom Abbild ausgeschlossen und wird
-unter Docker zur Laufzeit eingehängt. `GITHUB_PRIVATE_KEY_PATH` verweist auf
-einen anderen Ort.
+Wird neben `github_auth.py` oder unter `GITHUB_PRIVATE_KEY_PATH` erwartet.
+Über `.gitignore` und `.dockerignore` ausgeschlossen; unter Docker als Secret
+eingehängt.
+
+Anmerkung: Diese Dokumentation wurde mithilfe von generativer KI erstellt.
+

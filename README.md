@@ -6,72 +6,57 @@
 
 ## English
 
-A research tool for comparing recorded performances of Schubert's *Winterreise*.
-It reads an annotated score together with per-beat measurements taken from 26
-recordings, and makes the differences between interpretations visible and
-measurable.
+A web application for comparing 26 recordings (1948–1990) of Schubert's
+*Winterreise* by Dietrich Fischer-Dieskau. It shows the annotated score and
+visualizes three per-beat measurements of every recording: **tempo** (bpm),
+**dynamics** (dBFS) and **timbre** (spectral centroid, Hz).
 
-Three quantities are measured for every beat of every recording: **tempo** in
-beats per minute, **dynamics** as a sound level in decibels, and **timbre** as
-the spectral centroid in hertz. Because level and frequency response depend on
-how a recording was made, the values are normalized before any comparison —
-centred on the median of the recording and scaled by a corpus-wide robust
-measure of spread — so that what is compared is musical shaping rather than
-recording technique.
-
-### What it does
+### Features
 
 | | |
 |---|---|
-| **Score viewer** | Engraves the score in the browser and highlights Dietrich Fischer-Dieskau's handwritten entries in his working copies. Individual elements can be clicked to trace them back to the source encoding. |
-| **Line graph** | One parameter, one piece, any number of recordings, drawn as curves over a shared axis. |
-| **Multi-parameter view** | A single performance as a ribbon encoding all three parameters at once: segment width from tempo, extent from dynamics, colour from timbre. A passage can be selected and carried over to a comparison view, where several recordings are shown side by side. |
-| **Similarity network** | Computes distances between recordings using dynamic time warping and lays the result out as a graph, so that groupings become visible at a glance. Works on a single passage, one piece, half the cycle, or all of it. |
+| **Landing page** | Timeline and map of where and when the recordings were made. |
+| **Score viewer** | Engraves the MEI score in the browser (Verovio) and highlights Fischer-Dieskau's handwritten entries; clicking an element shows its encoded information. |
+| **Line graph** | One parameter, one song, several recordings as curves; also as a table with CSV export. |
+| **Multi-parameter view** | One recording of one song as a semicircular ribbon (width: duration, length: dynamics, colour: timbre). A selected passage can be compared across recordings as linear ribbons, next to the score. |
+| **Similarity network** | Pairwise DTW distance and Kendall's τ between recordings, for a measure range, a song, half the cycle or the whole cycle; shown as a network or a matrix, with a detail view for every pair. |
 
-The data live in a separate private GitHub repository, which the application
-only ever reads. There is no database and no local copy of the material.
+### How it works
+
+- The data (MEI scores and per-beat measurements) live in the GitHub
+  repository `cvoncram/Winterreise-database`. The backend reads it through a
+  GitHub App; there is no local copy and no database.
+- A script in that repository computes the normalization statistics on every
+  change and stores them as JSON next to the data.
+- The backend (FastAPI) fetches and parses the files, normalizes the series and
+  computes the distances. The frontend (SvelteKit) renders the score and the
+  visualizations.
+- The frontend forwards all requests to `/db/…` to the backend.
 
 ### Requirements
 
-- **Docker**, for the containerised installation — nothing else
-- or **Python 3.12** and **Node 20.19+ / 22+** for the local one
-- in either case, the GitHub App's private key (`.pem`), which is not part of
-  this repository
-
-Instructions are for Linux and macOS.
+- **Docker**, or **Python 3.12** and **Node 20.19+ / 22+**
+- the GitHub App's private key (`.pem`), which is not part of this repository
 
 ### Installation with Docker
 
 Put the private key into `backend/`, then:
 
 ```bash
-docker compose up --build
-```
-
-The application is then at **http://localhost:3000**.
-
-```bash
+docker compose up --build    # build and start
 docker compose down          # stop
 docker compose logs -f       # follow the logs
 ```
 
-If your key has a different file name, or port 3000 is taken, copy
-`.env.example` to `.env` and adjust it there.
+The application runs at **http://localhost:3000**; the API documentation at
+http://127.0.0.1:8000/docs.
 
-Only the frontend is published. Requests to `/db/…` are forwarded to the
-backend by the SvelteKit server itself, so both halves share an origin and the
-backend stays unreachable from outside. Its port is published to the loopback
-interface alone, so that the interactive API documentation at
-http://127.0.0.1:8000/docs remains available while working on the application.
-
-The key is never part of an image: it is excluded from the build context and
-mounted at run time as a Docker secret.
+For a key with a different file name or a different port, copy `.env.example`
+to `.env` and adjust it.
 
 ### Installation without Docker
 
-Two processes, so two terminals.
-
-**Backend**
+**Backend** (first terminal)
 
 ```bash
 cd backend
@@ -81,10 +66,10 @@ pip install -r requirements.txt
 uvicorn main:app --reload
 ```
 
-Listens on `http://127.0.0.1:8000`. The private key is expected beside
-`github_auth.py`; `GITHUB_PRIVATE_KEY_PATH` points it elsewhere.
+Runs at `http://127.0.0.1:8000`. The key is expected next to `github_auth.py`
+or at `GITHUB_PRIVATE_KEY_PATH`.
 
-**Frontend**
+**Frontend** (second terminal)
 
 ```bash
 cd frontend
@@ -92,90 +77,76 @@ npm install
 npm run dev
 ```
 
-Runs on `http://localhost:5173`. Vite forwards `/db/…` to the backend, which
-therefore has to be running.
+Runs at `http://localhost:5173`.
 
 ### Layout
 
 ```
-backend/     FastAPI server — GitHub access, MEI parsing, statistics, distances
-frontend/    SvelteKit application — pages, components, visualizations
+backend/     FastAPI server: GitHub access, MEI parsing, statistics, DTW
+frontend/    SvelteKit application: pages, components, visualizations
 ```
 
-Each has a README of its own describing its structure.
+See the READMEs in both directories for their structure.
+
+Note: This documentation was generated with the help of Generative AI.
 
 ---
 
 ## Deutsch
 
-Ein Forschungswerkzeug zum Vergleich eingespielter Aufführungen von Schuberts
-*Winterreise*. Es liest einen annotierten Notentext zusammen mit
-schlagweise erhobenen Messwerten aus 26 Aufnahmen und macht die Unterschiede
-zwischen Interpretationen sichtbar und messbar.
-
-Für jeden Schlag jeder Aufnahme liegen drei Größen vor: das **Tempo** in
-Schlägen pro Minute, die **Dynamik** als Pegel in Dezibel und die
-**Klangfarbe** als spektraler Schwerpunkt in Hertz. Da Pegel und Frequenzgang
-davon abhängen, wie eine Aufnahme entstanden ist, werden die Werte vor jedem
-Vergleich normalisiert — zentriert auf den Median der Aufnahme und skaliert
-mit einem korpusweiten robusten Streuungsmaß —, sodass verglichen wird, was
-gestaltet wurde, und nicht, wie aufgenommen wurde.
+Eine Webanwendung zum Vergleich von 26 Aufnahmen (1948–1990) von Schuberts
+*Winterreise* mit Dietrich Fischer-Dieskau. Sie zeigt den annotierten
+Notentext und visualisiert drei schlagweise Messgrößen jeder Aufnahme:
+**Tempo** (bpm), **Dynamik** (dBFS) und **Klangfarbe** (spektraler
+Schwerpunkt, Hz).
 
 ### Funktionen
 
 | | |
 |---|---|
-| **Partiturbetrachter** | Setzt den Notentext im Browser und hebt die handschriftlichen Eintragungen Dietrich Fischer-Dieskaus in seinen Arbeitsexemplaren farblich hervor. Einzelne Elemente lassen sich anklicken und auf ihre Kodierung zurückverfolgen. |
-| **Liniendiagramm** | Ein Parameter, ein Lied, beliebig viele Aufnahmen, als Kurven über einer gemeinsamen Achse. |
-| **Mehrparameter-Darstellung** | Eine Aufführung als Band, das alle drei Parameter zugleich kodiert: Segmentbreite aus dem Tempo, Ausdehnung aus der Dynamik, Farbe aus der Klangfarbe. Ein Ausschnitt lässt sich auswählen und in eine Vergleichsansicht übernehmen, in der mehrere Aufnahmen untereinander stehen. |
-| **Ähnlichkeitsnetzwerk** | Berechnet Distanzen zwischen Aufnahmen mittels Dynamic Time Warping und ordnet das Ergebnis als Graph an, sodass Gruppierungen auf einen Blick erkennbar werden. Wahlweise für einen Ausschnitt, ein Lied, eine Zyklushälfte oder den ganzen Zyklus. |
+| **Startseite** | Zeitleiste und Karte der Aufnahmeorte und -daten. |
+| **Partiturbetrachter** | Setzt die MEI-Partitur im Browser (Verovio) und hebt Fischer-Dieskaus handschriftliche Eintragungen hervor; ein Klick auf ein Element zeigt die kodierten Informationen. |
+| **Liniendiagramm** | Ein Parameter, ein Lied, mehrere Aufnahmen als Kurven; auch als Tabelle mit CSV-Export. |
+| **Mehrparameter-Darstellung** | Eine Aufnahme eines Liedes als halbkreisförmiges Band (Breite: Dauer, Länge: Dynamik, Farbe: Klangfarbe). Ein ausgewählter Abschnitt lässt sich als lineare Bänder mit anderen Aufnahmen vergleichen, neben dem Notentext. |
+| **Ähnlichkeitsnetzwerk** | Paarweise DTW-Distanz und Kendalls τ zwischen Aufnahmen, für einen Taktbereich, ein Lied, eine Zyklushälfte oder den ganzen Zyklus; als Netzwerk oder Matrix, mit Detailansicht für jedes Paar. |
 
-Die Daten liegen in einem eigenen, privaten GitHub-Repositorium, auf das die
-Anwendung ausschließlich lesend zugreift. Es gibt weder eine Datenbank noch
-eine lokale Kopie des Materials.
+### Funktionsweise
+
+- Die Daten (MEI-Partituren und schlagweise Messwerte) liegen im
+  GitHub-Repositorium `cvoncram/Winterreise-database`. Das Backend liest es
+  über eine GitHub App; es gibt weder eine lokale Kopie noch eine Datenbank.
+- Ein Skript in diesem Repositorium berechnet bei jeder Änderung die
+  Normalisierungsgrößen und legt sie als JSON neben den Daten ab.
+- Das Backend (FastAPI) lädt und parst die Dateien, normalisiert die
+  Messreihen und berechnet die Distanzen. Das Frontend (SvelteKit) setzt den
+  Notentext und zeichnet die Visualisierungen.
+- Das Frontend leitet alle Anfragen an `/db/…` an das Backend weiter.
 
 ### Voraussetzungen
 
-- **Docker** für die Installation in Containern — sonst nichts
-- oder **Python 3.12** und **Node 20.19+ / 22+** für die lokale Installation
-- in beiden Fällen der private Schlüssel der GitHub App (`.pem`), der nicht
-  Bestandteil dieses Repositoriums ist
-
-Die Anleitungen gelten für Linux und macOS.
+- **Docker** oder **Python 3.12** und **Node 20.19+ / 22+**
+- der private Schlüssel der GitHub App (`.pem`), der nicht Teil dieses
+  Repositoriums ist
 
 ### Installation mit Docker
 
 Den privaten Schlüssel nach `backend/` legen, dann:
 
 ```bash
-docker compose up --build
-```
-
-Die Anwendung ist anschließend unter **http://localhost:3000** erreichbar.
-
-```bash
+docker compose up --build    # bauen und starten
 docker compose down          # anhalten
 docker compose logs -f       # Protokoll mitlesen
 ```
 
-Heißt der Schlüssel anders oder ist Port 3000 belegt, genügt es,
-`.env.example` nach `.env` zu kopieren und dort anzupassen.
+Die Anwendung läuft unter **http://localhost:3000**, die API-Dokumentation
+unter http://127.0.0.1:8000/docs.
 
-Veröffentlicht wird allein das Frontend. Anfragen an `/db/…` leitet der
-SvelteKit-Server selbst ans Backend weiter, sodass beide Hälften denselben
-Ursprung teilen und das Backend von außen unerreichbar bleibt. Sein Port ist
-nur auf der Loopback-Schnittstelle veröffentlicht, damit die interaktive
-Schnittstellenbeschreibung unter http://127.0.0.1:8000/docs während der Arbeit
-an der Anwendung erreichbar bleibt.
-
-Der Schlüssel gelangt nie in ein Abbild: Er ist vom Build-Kontext
-ausgeschlossen und wird zur Laufzeit als Docker-Secret eingehängt.
+Für einen anders benannten Schlüssel oder einen anderen Port `.env.example`
+nach `.env` kopieren und anpassen.
 
 ### Installation ohne Docker
 
-Zwei Prozesse, also zwei Terminals.
-
-**Backend**
+**Backend** (erstes Terminal)
 
 ```bash
 cd backend
@@ -185,11 +156,10 @@ pip install -r requirements.txt
 uvicorn main:app --reload
 ```
 
-Hört auf `http://127.0.0.1:8000`. Der private Schlüssel wird neben
-`github_auth.py` erwartet; `GITHUB_PRIVATE_KEY_PATH` verweist auf einen
-anderen Ort.
+Läuft unter `http://127.0.0.1:8000`. Der Schlüssel wird neben
+`github_auth.py` oder unter `GITHUB_PRIVATE_KEY_PATH` erwartet.
 
-**Frontend**
+**Frontend** (zweites Terminal)
 
 ```bash
 cd frontend
@@ -197,14 +167,16 @@ npm install
 npm run dev
 ```
 
-Läuft auf `http://localhost:5173`. Vite leitet `/db/…` an das Backend weiter,
-das folglich laufen muss.
+Läuft unter `http://localhost:5173`.
 
 ### Aufbau
 
 ```
-backend/     FastAPI-Server — GitHub-Zugriff, MEI-Parser, Statistik, Distanzen
-frontend/    SvelteKit-Anwendung — Seiten, Komponenten, Visualisierungen
+backend/     FastAPI-Server: GitHub-Zugriff, MEI-Parser, Statistik, DTW
+frontend/    SvelteKit-Anwendung: Seiten, Komponenten, Visualisierungen
 ```
 
-Beide besitzen eine eigene README, die ihre Struktur beschreibt.
+Die READMEs in beiden Verzeichnissen beschreiben deren Struktur.
+
+Anmerkung: Diese Dokumentation wurde mithilfe von generativer KI erstellt.
+
