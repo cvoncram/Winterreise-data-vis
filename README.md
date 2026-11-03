@@ -106,7 +106,7 @@ Schwerpunkt, Hz).
 
 ### Privater Schlüssel
 
-Wenden Sie sich an mich unter cvoncram@gmail.com, um einen privater Schlüssel (.pem) zu erhalten, der benötigt wird, um lesend auf die Datenbank (https://github.com/cvoncram/Winterreise-database) zuzugreifen. 
+Wenden Sie sich an mich unter cvoncram@gmail.com, um einen privaten Schlüssel (.pem) zu erhalten, der benötigt wird, um lesend auf die Datenbank (https://github.com/cvoncram/Winterreise-database) zuzugreifen. 
 
 ### Funktionen
 
