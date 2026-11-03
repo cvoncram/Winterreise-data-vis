@@ -246,7 +246,7 @@
         </table>
  
         <h3 use:registerHeading>Note on the use of Generative AI</h3>
-        <p>Generative AI was used to help create some of the frontend components and parts of the backend routes. Additionally, it was used to translate parts of the application logic from pseudocode to machine-readable Python code.
+        <p>Generative AI was used to translate parts of the application logic from pseudocode to machine-readable Python code as well as assisting in the creation of frontend components and generating documentation files. 
         </p>
 
         <h3 use:registerHeading>MIT Licence</h3>        
