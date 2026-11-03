@@ -8,8 +8,7 @@ import requests
 
 BASE_DIR = Path(__file__).resolve().parent
 
-# Identifiers of the GitHub App, not secret in themselves. Overridable so the
-# application can be pointed at a different installation without editing code.
+# GitHub App identifiers, overridable via environment.
 APP_ID = os.getenv("GITHUB_APP_ID", "2827092")
 INSTALLATION_ID = os.getenv("GITHUB_INSTALLATION_ID", "108972344")
 
@@ -18,18 +17,12 @@ DEFAULT_KEY_PATH = BASE_DIR / "winterreise-database-test.2026-02-09.private-key.
 
 def _load_private_key() -> str:
     """
-    The App's signing key — the one secret the system holds.
-
-    Read from a file whose location is configurable, so that a container can
-    have it mounted at run time and never carry it inside the image. Reading
-    it from an environment variable is supported as well, but the file is
-    preferable: environment variables are visible to anything that can inspect
-    the process, and they turn up in logs and crash reports.
+    Private key of the GitHub App, from GITHUB_PRIVATE_KEY or from the file
+    at GITHUB_PRIVATE_KEY_PATH (default: next to this module).
     """
     key = os.getenv("GITHUB_PRIVATE_KEY")
     if key:
-        # A PEM passed through the environment almost always arrives with its
-        # line breaks escaped.
+        # Unescape line breaks.
         return key.replace("\\n", "\n")
 
     path = Path(os.getenv("GITHUB_PRIVATE_KEY_PATH", DEFAULT_KEY_PATH))
@@ -42,25 +35,20 @@ def _load_private_key() -> str:
     return path.read_text()
 
 
-# Loaded once at import: without it nothing can be fetched, so failing here is
-# preferable to failing on the first request.
+# Loaded at import.
 PRIVATE_KEY = _load_private_key()
 
 _cached_token = None
 _cached_token_expires_at = 0
 
 
-# GitHub rejects an App JWT whose lifetime exceeds ten minutes, measured as
-# `exp` minus `iat` — not as `exp` minus the current time. Backdating `iat` to
-# absorb clock skew therefore eats into the same allowance, and the two
-# together must stay under the limit. Nine minutes leaves room to spare; the
-# token is only ever used for the exchange immediately below, so a longer life
-# would buy nothing anyway.
+# JWT timing in seconds; exp - iat must not exceed ten minutes.
 _JWT_BACKDATE = 60
 _JWT_LIFETIME = 9 * 60
 
 
 def generate_jwt():
+    """Signed JWT of the GitHub App."""
     issued_at = int(time.time()) - _JWT_BACKDATE
     payload = {
         "iat": issued_at,
@@ -71,6 +59,7 @@ def generate_jwt():
 
 
 def get_installation_token():
+    """Installation access token, cached until shortly before expiry."""
     global _cached_token, _cached_token_expires_at
 
     if _cached_token and time.time() < _cached_token_expires_at - 60:
@@ -87,10 +76,7 @@ def get_installation_token():
 
     response = requests.post(url, headers=headers, timeout=10)
     if not response.ok:
-        # GitHub explains authentication failures precisely — "'Expiration
-        # time' claim ('exp') is too far in the future", "A JSON web token
-        # could not be decoded" — and raise_for_status() discards that,
-        # leaving only a bare 401 to guess from.
+        # Error including GitHub's message.
         try:
             detail = response.json().get("message", response.text)
         except ValueError:
@@ -110,4 +96,5 @@ def get_installation_token():
 
 
 def get_github_headers() -> dict:
+    """Authorization header for GitHub API requests."""
     return {"Authorization": f"token {get_installation_token()}"}

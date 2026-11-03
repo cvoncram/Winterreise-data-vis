@@ -7,19 +7,23 @@ router = APIRouter()
 
 @router.get("/db/scores-folder")
 def get_scores_tree():
+    """Score directory as a tree sorted by song number."""
     tree_items = fetch_repo_tree()
 
     def format_filename(name: str) -> str:
+        """Display name from a file name."""
         name = re.sub(r"\.[^/.]+$", "", name)   # remove extension
         name = re.sub(r"[-]", ". ", name)       # replace separators
         name = re.sub(r"[_]", " ", name)       # replace separators
         return name
     
     def extract_number(name: str) -> int:
+        """Leading number of a name, 0 if none."""
         match = re.match(r"^\d+", name)
         return int(match.group()) if match else 0
     
     def sort_tree(node):
+        """Nested folders and files, sorted by order."""
         if isinstance(node, dict):
             items = []
 

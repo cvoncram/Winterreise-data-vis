@@ -6,17 +6,8 @@ from config import MEI_NS
 
 def _as_float(value: Optional[str]) -> Optional[float]:
     """
-    Parse a measurement, or None where there is none to be had.
-
-    Dynamics carries non-numeric readings such as "extreme" in rare cases, and
-    the timbre extraction has been seen to emit a literal "inf" — which
-    float() accepts without complaint. Infinities are rejected here rather
-    than left to propagate, since an infinite measurement is not one, and
-    downstream it would turn medians and residuals into NaN silently.
-
-    Mirrors _as_float in the database repository's stats/build_stats.py; the
-    two parsers must agree on what counts as a usable value, or the figures
-    computed there would not describe the data read here.
+    A finite measurement as float, else None.
+    Same rules as _as_float in the database repository's stats/build_stats.py.
     """
     if value is None:
         return None
@@ -74,9 +65,7 @@ def parse_rows(
 
             tempo_val = _as_float(tempos[i].attrib.get("mm")) if i < len(tempos) else None
 
-            # Two separate things live on the same element: the measured level
-            # in decibels, and a human-readable reading of it such as "mf+2".
-            # Only the former enters any computation.
+            # n: level in dB; label: readable reading such as "mf+2".
             dyn_val = _as_float(dyns[i].attrib.get("n")) if i < len(dyns) else None
             intpr_dyn = dyns[i].attrib.get("label") if i < len(dyns) else None
 
@@ -95,6 +84,7 @@ def parse_rows(
 
 
 def parse_mei_metadata(xml: str) -> dict[str, float | int] | None:
+    """Calibration block of a performance file, None if absent."""
     root = ET.fromstring(xml)
 
     metadata_element = root.find(
@@ -102,9 +92,7 @@ def parse_mei_metadata(xml: str) -> dict[str, float | int] | None:
         MEI_NS
     )
     if metadata_element is None:
-        # Some older-pipeline files don't carry this calibration block at
-        # all (e.g. generated before it was introduced) — callers should
-        # treat this piece as unusable for anything metadata-dependent.
+        # No calibration block.
         return None
 
     sampleRateElement = metadata_element.find(
@@ -132,6 +120,7 @@ def parse_mei_metadata(xml: str) -> dict[str, float | int] | None:
     }
 
 def return_relevant_measures(xml: str, start: int, end: int):
+    """Score with only the measures from start to end."""
     root = ET.fromstring(xml)
 
     # Remove every measure outside the requested range

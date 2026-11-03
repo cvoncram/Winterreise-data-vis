@@ -7,9 +7,7 @@ from routers import files, scores, performances, analysis, stats
 
 app = FastAPI()
 
-# Needed only for the Vite dev server, which serves the frontend from a
-# different port. Under Docker the SvelteKit server forwards /db itself, so
-# both halves share an origin and no cross-origin request ever occurs.
+# Allowed origins (the Vite dev server by default).
 _origins = os.getenv("CORS_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173")
 
 app.add_middleware(
@@ -22,7 +20,7 @@ app.add_middleware(
 
 @app.get("/health", include_in_schema=False)
 def health():
-    """Liveness probe, so that compose can wait for the backend to be up."""
+    """Liveness probe."""
     return {"status": "ok"}
 
 app.include_router(files.router)
