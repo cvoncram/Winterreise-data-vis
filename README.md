@@ -11,6 +11,10 @@ A web application for comparing 26 recordings (1948–1990) of Schubert's
 visualizes three per-beat measurements of every recording: **tempo** (bpm),
 **dynamics** (dBFS) and **timbre** (spectral centroid, Hz).
 
+### Private key
+
+Contact me at cvoncram@gmail.com to request a private key (.pem) in order to access the database (https://github.com/cvoncram/Winterreise-database), which is necessary for using the application.
+
 ### Features
 
 | | |
@@ -99,6 +103,10 @@ Eine Webanwendung zum Vergleich von 26 Aufnahmen (1948–1990) von Schuberts
 Notentext und visualisiert drei schlagweise Messgrößen jeder Aufnahme:
 **Tempo** (bpm), **Dynamik** (dBFS) und **Klangfarbe** (spektraler
 Schwerpunkt, Hz).
+
+### Privater Schlüssel
+
+Wenden Sie sich an mich unter cvoncram@gmail.com, um einen privater Schlüssel (.pem) zu erhalten, der benötigt wird, um lesend auf die Datenbank (https://github.com/cvoncram/Winterreise-database) zuzugreifen. 
 
 ### Funktionen
 
