@@ -1,9 +1,9 @@
-# Winterreise Performance Visualization — zwei Dienste.
+# Winterreise Performance Visualization: backend and frontend.
 #
-#   docker compose up --build     bauen und starten
-#   docker compose down           anhalten
+#   docker compose up --build     build and start
+#   docker compose down           stop
 #
-# Danach ist die Anwendung unter http://localhost:3000 erreichbar.
+# The application runs at http://localhost:3000.
 
 services:
   backend:
@@ -11,18 +11,15 @@ services:
     environment:
       GITHUB_APP_ID: ${GITHUB_APP_ID:-2827092}
       GITHUB_INSTALLATION_ID: ${GITHUB_INSTALLATION_ID:-108972344}
-      # Docker mounts secrets under /run/secrets, read-only.
+      # Mounted secret, read-only.
       GITHUB_PRIVATE_KEY_PATH: /run/secrets/github_private_key
     secrets:
       - github_private_key
     ports:
-      # Bound to the loopback interface only: the frontend reaches the backend
-      # over the internal network and does not need this. It is published
-      # solely so that http://127.0.0.1:8000/docs remains available while
-      # working on the application.
+      # Loopback only, for http://127.0.0.1:8000/docs.
       - "127.0.0.1:8000:8000"
     healthcheck:
-      # No curl in the slim image, so the check is made with Python.
+      # Health check via Python.
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
       interval: 10s
       timeout: 5s
@@ -33,25 +30,17 @@ services:
   frontend:
     build: ./frontend
     environment:
-      # Service name, resolved by Docker's internal DNS.
+      # Backend service on the internal network.
       BACKEND_URL: http://backend:8000
     ports:
       - "${FRONTEND_PORT:-3000}:3000"
     depends_on:
       backend:
-        # Waits for the health check rather than merely for the container to
-        # start, so the first request cannot arrive before the backend is
-        # ready to answer it.
+        # Starts once the backend is healthy.
         condition: service_healthy
     restart: unless-stopped
 
 secrets:
   github_private_key:
-    # Read from the host at run time — the file is deliberately absent from
-    # the build context, so it exists in no image layer.
-    #
-    # The path is overridable because a GitHub App can hold several private
-    # keys at once, each revocable on its own. A second person therefore does
-    # not need this file, but a key of their own, whose name carries its own
-    # date of issue. Set GITHUB_PRIVATE_KEY_FILE in .env to point at it.
+    # Private key of the GitHub App on the host; overridable via GITHUB_PRIVATE_KEY_FILE.
     file: ${GITHUB_PRIVATE_KEY_FILE:-./backend/winterreise-database-test.2026-02-09.private-key.pem}
