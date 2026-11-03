@@ -16,6 +16,7 @@
 
     let chart: any = $state();
 
+    // List of recordings.
     onMount(async () => {
         if (pageState.recordings.length > 0) return;
         try {
@@ -28,6 +29,7 @@
         }
     });
 
+    /** Selects a recording and loads the list of its songs. */
     async function handleRecordingSelect(recording: CyclePerformance) {
         pageState.selectedRecording = recording;
         pageState.pieces = [];
@@ -49,6 +51,7 @@
         }
     }
 
+    /** Loads beats, metadata and normalization reference of the selected song. */
     async function handlePieceSelect(piece: SongInfo) {
         pageState.selectedPiece = piece;
         pageState.tableRows = [];

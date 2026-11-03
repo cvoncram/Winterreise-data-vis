@@ -63,7 +63,7 @@
         const all = Array.from(meiDoc.getElementsByTagName("*"));
 
         for (const annot of Array.from(meiDoc.getElementsByTagName("annot"))) {
-            // annots inside add are handled in the addEl block
+            // skip annots inside add
             if (annot.closest("add")) continue;
 
             const startEl = meiIdMap.get(annot.getAttribute("startid")?.replace("#", "") ?? "");
@@ -76,16 +76,16 @@
                 // c) all listed elements
                 scope = plist.split(" ").map(ref => meiIdMap.get(ref.replace("#", ""))).filter(el => el !== undefined);
             } else if (startEl && endEl) {
-                // b) start, end and everything in between in document order (endid sometimes precedes startid)
+                // b) start, end and everything in between in document order
                 const [from, to] = [all.indexOf(startEl), all.indexOf(endEl)].sort((a, b) => a - b);
-                // only within the annot's staves: across a barline, the other staves' notes lie in between as well
+                // restricted to the annot's staves
                 const staves = annot.getAttribute("staff")?.split(" ")
                     ?? [startEl, endEl].map(el => el.closest("staff")?.getAttribute("n") ?? el.getAttribute("staff") ?? "");
 
                 scope = all.slice(from, to + 1).filter(el =>
                     el === startEl || el === endEl
                     || (el.localName !== "staff" && el.localName !== "measure"
-                        // layer, beam or chord that open in between but close after the end
+                        // excluding groups that close after the end
                         && !el.contains(all[to])
                         && staves.includes(el.closest("staff")?.getAttribute("n") ?? ""))
                 );
@@ -176,7 +176,7 @@
 
     let svgContainer: HTMLDivElement | undefined;
 
-    // colour the annotated elements after every render ({@html} replaces the nodes); the annot bar stays
+    // colour the annotated elements after every render
     $effect(() => {
         if (!svg) return;
         for (const id of annotMap.keys()) {
@@ -307,8 +307,7 @@
                     break;
             };
 
-            // annots pointing at the note, its chord or its children (accid, verse, syl, artic);
-            // Set, because a start/end range contains the note and its verse and syl alike
+            // annots pointing at the note, its chord or its children
             const annots = new Set([meiNote, meiNote.closest("chord"), ...Array.from(meiNote.getElementsByTagName("*"))]
                 .flatMap(el => annotMap.get(el?.getAttribute("xml:id") ?? "") ?? []));
             const annotText = Array.from(annots).map(a => a.textContent?.trim()).filter(Boolean).join("; ");

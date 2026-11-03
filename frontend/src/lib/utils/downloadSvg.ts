@@ -7,7 +7,7 @@ export function downloadSvg(svg: SVGSVGElement, filename: string) {
 	clone.setAttribute('xmlns:xlink', 'http://www.w3.org/1999/xlink');
 	clone.setAttribute('font-family', getComputedStyle(svg).fontFamily);
 
-	// Elements laid out by flexbox have no width of their own in the file.
+	// Explicit size if the SVG has none.
 	if (!clone.getAttribute('width')) {
 		const { width, height } = svg.getBoundingClientRect();
 		clone.setAttribute('width', String(Math.round(width)));
@@ -26,7 +26,6 @@ export function downloadSvg(svg: SVGSVGElement, filename: string) {
 	a.click();
 	a.remove();
 
-	// Revoked on the next tick: revoking while the click is still being
-	// handled aborts the download in some browsers.
+	// Revoke the URL on the next tick.
 	setTimeout(() => URL.revokeObjectURL(url), 0);
 }

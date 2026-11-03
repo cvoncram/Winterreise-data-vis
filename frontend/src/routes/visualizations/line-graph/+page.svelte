@@ -20,6 +20,7 @@
         pageState.selectedParameter = parameter;
     }
 
+    /** Loads the selected song from every selected performance for graph and table. */
     async function generateGraph() {
         if (!pageState.selectedPiece) {
             error = "Select a piece first.";
@@ -57,6 +58,7 @@
         }
     }
 
+    // Songs and performances.
     onMount(async () => {
         if (pageState.pieces.length > 0 && pageState.allPerformances.length > 0) return;
         try {

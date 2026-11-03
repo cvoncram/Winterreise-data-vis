@@ -15,9 +15,7 @@
 		{ value: "timbre", label: "Timbre" }
 	];
 
-	/**
-	 * Weighting only has an effect on several parameters compared with the euclidean metric.
-	 */
+	/** Whether weights apply: several parameters and the euclidean metric. */
 	const weightsApply = $derived(selectedParameters.length > 1 && metric === "euclidean");
 
 	/** 

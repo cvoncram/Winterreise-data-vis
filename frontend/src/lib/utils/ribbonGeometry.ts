@@ -3,7 +3,7 @@
  * between them used by the morph transition.
  */
 
-/** Linear ribbon viewBox and margins. Shared so both files cannot drift. */
+/** Linear ribbon viewBox and margins. */
 export const LINEAR = {
 	width: 1000,
 	height: 200,

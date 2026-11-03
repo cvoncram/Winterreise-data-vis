@@ -9,6 +9,7 @@
     let viewMap = $state(false);
     let error = $state("");
     
+    // Recording metadata for timeline and map.
     onMount(async () => {
         try {
             const results = await fetch(`/db/performances-detailed`);

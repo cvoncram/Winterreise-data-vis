@@ -16,6 +16,7 @@
     let meiViewer = $state<ReturnType<typeof MeiViewer>>();
     let scoreRendered = $state(false);
 
+    /** Loads the MEI file of the selected song. */
     async function fetchSelectedFile(file: SongInfo) {
         loading = true;
         empty = false;
@@ -45,6 +46,7 @@
         fetchSelectedFile(file);
     }
 
+    // List of score files.
     onMount(async () => {
         if (pageState.files.length > 0) return;
         try {
