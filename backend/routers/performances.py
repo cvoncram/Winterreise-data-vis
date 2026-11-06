@@ -41,7 +41,7 @@ def _disambiguate_performance(folder_name: str, candidates: list[dict]) -> tuple
     folder_name = _normalize(folder_name)
     city_candidates = [
         p for p in candidates
-        if _normalize(p.get("City", "").replace(" ", "")) in folder_name
+        if _normalize(p.get("City", "").replace(" ", "").replace("?", "")) in folder_name
     ]
     remaining = city_candidates if city_candidates else candidates
     if len(remaining) == 1:
@@ -50,7 +50,7 @@ def _disambiguate_performance(folder_name: str, candidates: list[dict]) -> tuple
     suffix_match = re.search(r"_([A-Z])$", folder_name)
     if suffix_match:
         index = ord(suffix_match.group(1)) - ord("A")
-        sorted_candidates = sorted(remaining, key=lambda p: p.get("Date - Standardized", ""))
+        sorted_candidates = sorted(remaining, key=lambda p: p.get("No", 0))
         if 0 <= index < len(sorted_candidates):
             return sorted_candidates[index], True
 
