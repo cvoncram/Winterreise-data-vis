@@ -8,6 +8,7 @@ router = APIRouter()
 
 @router.get("/db/file")
 def get_file(path: str):
+    """MEI file as raw text."""
     if not is_safe_repo_path(path):
         raise HTTPException(status_code=400, detail="Invalid path")
 
@@ -15,9 +16,8 @@ def get_file(path: str):
     return Response(content=content, media_type="application/xml")
 
 @router.get("/db/file-measures")
-# Measure 0 is the pickup: eight of the songs begin with one, and the
-# performance data numbers it 0. Beats keep their lower bound of 1.
 def get_file_measures(piece: int, start: int = Query(ge=0), end: int = Query(ge=0)):
+    """Score of one song, cut to a measure range; measure 0 is the pickup."""
 
     if not 1 <= piece <= len(TITLES):
         raise HTTPException(status_code=404, detail="Piece not found")
@@ -29,6 +29,7 @@ def get_file_measures(piece: int, start: int = Query(ge=0), end: int = Query(ge=
 
 @router.get("/db/parsed-file")
 def parse_mei(path: str):
+    """Performance file as calibration metadata and per-beat rows."""
     if not is_safe_repo_path(path):
         raise HTTPException(status_code=400, detail="Invalid path")
 
@@ -49,6 +50,7 @@ def parse_files(
         end_beat: int = Query(ge=1),
         paths: list[str] = Query(...)
     ):
+    """Per-beat rows of a measure range, for several performances of one song."""
     if not 1 <= piece <= len(TITLES):
         raise HTTPException(status_code=404, detail="Piece not found")
 

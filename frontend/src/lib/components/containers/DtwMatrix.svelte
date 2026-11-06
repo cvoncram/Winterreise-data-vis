@@ -1,31 +1,21 @@
 <script lang="ts">
     import DtwMatrixCsv from "../partials/DtwMatrixCsv.svelte";
 
-    /**
-     * The distance matrix as a triangle.
-     *
-     * Shows every pair exactly once — the other half is its mirror image and
-     * the diagonal is zero by definition. Unlike the network it embeds
-     * nothing, so no distance is approximated: this is the view to read a
-     * single pair off, where the graph is the view to see the whole field.
-     *
-     * Drawn as plain SVG rather than through D3: there is no scale, layout or
-     * simulation to compute here, only a grid of rectangles, and the markup is
-     * easier to follow than an imperative redraw would be.
-     */
-    let { matrix, labels, onSelectPair }: {
+    /** The distance matrix as a lower triangle, drawn as plain SVG. */
+    let { matrix, labels, tauMatrix = [], onSelectPair }: {
         matrix: (number | null)[][];
         labels: string[];
-        /** Indices into the same order the labels are in, so the caller can name the pair. */
+        /** Kendall's tau per pair, for the CSV export. */
+        tauMatrix?: (number | null)[][];
+        /** Called with the pair's indices when a cell is clicked. */
         onSelectPair?: (a: number, b: number) => void;
     } = $props();
 
-    /** Sequential single hue, light to dark — magnitude, not identity. */
+    /** Colour ramp, light to dark. */
     const RAMP = ["#cde2fb", "#9ec5f4", "#6da7ec", "#3987e5", "#256abf", "#184f95", "#0d366b"];
 
     const n = $derived(matrix.length);
-    // Wide enough to read and to hit with a pointer, small enough that 26
-    // recordings still fit on a screen.
+    // Cell size in pixels.
     const cell = $derived(Math.max(28, Math.min(60, Math.round(1120 / Math.max(n, 1)))));
     const font = $derived(Math.min(18, Math.max(10, cell * 0.45)));
     const labelGap = 6;
@@ -51,7 +41,7 @@
 
     let hovered = $state<{ a: string; b: string; value: number } | null>(null);
 
-    // Room for the longest name, which sits at the end of the last row.
+    // Width of the label column.
     const labelWidth = $derived(
         Math.max(160, ...labels.map(l => l.length * font * 0.55)) + labelGap
     );
@@ -62,7 +52,10 @@
 {#if n > 1}
     <div class="flex flex-col gap-3 mt-4">
         <div class="flex items-center gap-4 flex-wrap">
-            <DtwMatrixCsv {matrix} {labels} />
+            <DtwMatrixCsv {matrix} {labels} label="Download distances as CSV" />
+            {#if tauMatrix.length > 0}
+                <DtwMatrixCsv matrix={tauMatrix} {labels} filename="dtw-tau-matrix" label="Download τ as CSV" />
+            {/if}
             <div class="flex items-center gap-2 text-sm opacity-70">
                 <span class="font-mono">{fmt(extent.lo)}</span>
                 <span class="flex h-3 w-40 rounded overflow-hidden" aria-hidden="true">

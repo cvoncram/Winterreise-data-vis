@@ -188,7 +188,7 @@
         <p>Clicking a node shows its label. Clicking a link shows the total DTW cost and τ of the pair; "More information" opens the pair details.</p>
 
         <h4 use:registerHeading>The matrix</h4>
-        <p>The matrix shows every pair once, as a lower triangle. The colour shows the cost per beat in seven steps from light (similar) to dark (different); the legend gives the smallest and largest value of the current selection. Hovering over a cell shows the pair and its value, clicking opens the pair details. Pairs that were not compared appear as dashed empty cells. The full matrix can be exported as CSV.</p>
+        <p>The matrix shows every pair once, as a lower triangle. The colour shows the cost per beat in seven steps from light (similar) to dark (different); the legend gives the smallest and largest value of the current selection. Hovering over a cell shows the pair and its value, clicking opens the pair details. Pairs that were not compared appear as dashed empty cells. The full matrix can be exported as CSV, for the cost per beat and for Kendall's τ.</p>
 
         <h4 use:registerHeading>Pair details</h4>
         <p>The detail view summarises a pair: total cost and cost per beat, τ and its floor, and the number of beats and songs compared.</p>

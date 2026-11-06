@@ -5,8 +5,9 @@
     let svgContainer: HTMLDivElement | undefined = $state();
 
     let {nodes, links, linkWidth = $bindable(), nodeSize = $bindable(), onMoreInfo,
-         nodeColours = [], legend = []}: {
-        nodes: { id: number; label?: string; }[];
+         nodeColours = [], legend = [], showLabels = false}: {
+        /** `lines`: label text inside the node, one entry per line. */
+        nodes: { id: number; label?: string; lines?: string[]; }[];
         links: { source: number; target: number; distance: number; cost: number; tau: number | null; }[];
         linkWidth: number;
         nodeSize: number;
@@ -14,6 +15,8 @@
         /** One colour per node id; empty leaves every node in the default fill. */
         nodeColours?: string[];
         legend?: { label: string; colour: string }[];
+        /** Labels inside the nodes. */
+        showLabels?: boolean;
     } = $props();
 
     const DEFAULT_FILL = "#EDEFC4";
@@ -28,6 +31,7 @@
     interface GraphNode extends d3.SimulationNodeDatum {
         id: number;
         label?: string;
+        lines?: string[];
     }
 
     interface GraphLink extends d3.SimulationLinkDatum<GraphNode> {
@@ -44,8 +48,7 @@
         return `${(link.source as GraphNode).label} <---> ${(link.target as GraphNode).label}`
             + `\n<b>DTW cost (absolute)</b>: ${link.cost.toFixed(1)}`
             + `\n<b>Kendall's τ</b>: ${link.tau !== null ? link.tau.toFixed(3) : "n/a"}`
-            // The popup itself ignores the pointer so that it never swallows a
-            // click meant for the graph; the button takes it back.
+            // Button for the detail view.
             + (onMoreInfo ? `\n<button data-more class="btn btn-xs btn-primary pointer-events-auto mt-1">More information</button>` : "");
     }
 
@@ -64,11 +67,12 @@
         let simulation: d3.Simulation<GraphNode, GraphLink> | null = null;
         let linkSelection: d3.Selection<SVGLineElement, GraphLink, SVGGElement, unknown> | null = null;
         let nodeSelection: d3.Selection<SVGCircleElement, GraphNode, SVGGElement, unknown> | null = null;
+        let labelSelection: d3.Selection<SVGGElement, GraphNode, SVGGElement, unknown> | null = null;
         let svgSelection: d3.Selection<SVGSVGElement, undefined, null, undefined> | null = null;
         let legendSelection: d3.Selection<SVGGElement, undefined, null, undefined> | null = null;
         let zoom: d3.ZoomBehavior<SVGSVGElement, undefined> | null = null;
 
-        /** Writes the measured box onto the existing SVG, without rebuilding it. */
+        /** Applies the measured size to the existing SVG. */
         function applySize(w: number, h: number) {
             if (!svgSelection || w === 0 || h === 0) return;
             svgSelection
@@ -76,7 +80,7 @@
                 .attr("height", h)
                 .attr("viewBox", `${-w / 2} ${-h / 2} ${w} ${h}`);
             zoom?.extent([[0, 0], [w, h]]);
-            // Pinned to the top left corner of whatever box the SVG now has.
+            // Legend in the top left corner.
             legendSelection?.attr("transform", `translate(${-w / 2 + 12}, ${-h / 2 + 16})`);
         }
 
@@ -86,13 +90,11 @@
 
             if (currentNodes.length === 0) return;
 
-            // Read once, untracked: the sliders and the colouring are applied by
-            // the effects below, and depending on them here would rebuild the
-            // whole simulation whenever one of them moves — which also threw
-            // away the node colours.
+            // Initial values, untracked.
             const currentNodeSize = untrack(() => nodeSize);
             const currentLinkWidth = untrack(() => linkWidth);
             const currentColours = untrack(() => nodeColours);
+            const currentShowLabels = untrack(() => showLabels);
 
             simulation?.stop();
             container.innerHTML = '';
@@ -152,6 +154,25 @@
                     showPopup(event, displayNodeInfo(d));
                 });
 
+            labelSelection = g.append("g")
+                .attr("pointer-events", "none")
+                .selectAll<SVGGElement, GraphNode>("g")
+                .data(currentNodes)
+                .join("g");
+            labelSelection.append("rect").attr("fill", "white").attr("rx", 2);
+            labelSelection.append("text")
+                .attr("text-anchor", "middle")
+                .attr("dominant-baseline", "central")
+                .attr("font-family", "sans-serif")
+                .attr("fill", "black")
+                .selectAll("tspan")
+                .data(d => labelLines(d).map((line, i, all) => ({ line, dy: i === 0 ? -(all.length - 1) * 0.6 : 1.2 })))
+                .join("tspan")
+                .attr("x", 0)
+                .attr("dy", t => `${t.dy}em`)
+                .text(t => t.line);
+            layoutLabels(currentNodeSize, currentShowLabels);
+
             simulation.on("tick", () => {
                 linkSelection!
                     .attr("x1", d => (d.source as any).x)
@@ -161,6 +182,8 @@
                 nodeSelection!
                     .attr("cx", d => (d as any).x)
                     .attr("cy", d => (d as any).y);
+                labelSelection!
+                    .attr("transform", d => `translate(${(d as any).x}, ${(d as any).y})`);
             });
 
             nodeSelection.call(d3.drag<SVGCircleElement, GraphNode>()
@@ -186,7 +209,29 @@
             container.appendChild(svg.node()!);
         });
 
-        /** Rebuilds the key; cheap enough that changing it need not rebuild the graph. */
+        /** Lines of a node's label. */
+        function labelLines(d: GraphNode): string[] {
+            return d.lines?.length ? d.lines : [d.label ?? ""];
+        }
+
+        /** Fits each label and its white box into a node of radius r. */
+        function layoutLabels(r: number, visible: boolean) {
+            if (!labelSelection) return;
+            labelSelection.attr("display", visible ? null : "none");
+            labelSelection.each(function (d) {
+                const lines = labelLines(d);
+                const chars = Math.max(...lines.map(l => l.length), 1);
+                // Box diagonal within the node diameter.
+                const fontSize = Math.min(14, (1.8 * r) / Math.hypot(chars * 0.6, lines.length * 1.2));
+                const w = chars * 0.6 * fontSize + 4;
+                const h = lines.length * 1.2 * fontSize + 4;
+                const group = d3.select(this);
+                group.select("text").attr("font-size", fontSize);
+                group.select("rect").attr("x", -w / 2).attr("y", -h / 2).attr("width", w).attr("height", h);
+            });
+        }
+
+        /** Redraws the legend. */
         function drawLegend() {
             if (!legendSelection) return;
             legendSelection.selectAll("*").remove();
@@ -216,6 +261,7 @@
             if (!linkSelection || !nodeSelection) return;
             linkSelection.attr("stroke-width", d => linkWidth / d.distance);
             nodeSelection.attr("r", nodeSize);
+            layoutLabels(nodeSize, showLabels);
         });
 
         return () => {

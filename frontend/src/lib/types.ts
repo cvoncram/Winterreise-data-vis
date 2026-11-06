@@ -47,7 +47,7 @@ export type CyclePerformance = {
     normalizationReference?: NormalizationReference;
     path: string;
     label: string;
-    /** From performances.json, matched to the folder by the backend. */
+    /** From performances.json. */
     year?: number | null;
     pianist?: string | null;
     city?: string | null;

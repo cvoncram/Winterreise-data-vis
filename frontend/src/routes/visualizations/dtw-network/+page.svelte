@@ -16,6 +16,19 @@
 
     let linkWidthLabel = $derived(pageState.linkWidth);
     let nodeSizeLabel = $derived(pageState.nodeSize);
+    // Node size before labels were shown.
+    let sizeBeforeLabels = pageState.nodeSize;
+
+    /** Shows or hides the node labels; nodes at maximum size while shown. */
+    function toggleLabels() {
+        pageState.showLabels = !pageState.showLabels;
+        if (pageState.showLabels) {
+            sizeBeforeLabels = pageState.nodeSize;
+            pageState.nodeSize = 50;
+        } else {
+            pageState.nodeSize = sizeBeforeLabels;
+        }
+    }
 
     let error: string = $state("");
     let loading = $state(false);
@@ -29,11 +42,7 @@
         comparing: "Comparing recordings"
     };
 
-    /**
-     * Seconds left in the current step, from how long its steps have taken so
-     * far. Fetching and comparing run at very different speeds, so the estimate
-     * restarts when the step does.
-     */
+    /** Seconds left in the current step. */
     let remainingSeconds = $derived.by(() => {
         if (!progress || progress.done < 3) return null;
         const elapsed = (Date.now() - progressStarted) / 1000;
@@ -53,7 +62,7 @@
         return raw.map(w => w / total);
     }
 
-    /** The one description of the current selection, so that network and detail view cannot diverge. */
+    /** Analysis parameters for the current selection. */
     function analysisParams(paths: string[]): DtwAnalysisParams {
         return {
             parameters: pageState.selectedParameters,
@@ -70,15 +79,12 @@
         };
     }
 
-    /** Recordings without the metadata in question keep this. */
+    /** Fill for recordings without the selected metadata. */
     const UNKNOWN_COLOUR = "#9ca3af";
 
-    /**
-     * Node colours and their key. Year gets a sequential scale because it is
-     * an order, pianist and context a categorical one because they are not.
-     */
+    /** Node colours and legend entries for the selected metadata. */
     let nodeStyling = $derived.by(() => {
-        const performances = pageState.selectedPerformances;
+        const performances = pageState.generated?.performances ?? [];
         const none = { colours: [] as string[], legend: [] as { label: string; colour: string }[] };
         if (pageState.colourBy === "none" || performances.length === 0) return none;
 
@@ -114,6 +120,7 @@
     let pairError = $state("");
     let sortByMargin = $state(true);
 
+    /** Fixed digits; a dash for missing values. */
     const fmt = (v: number | null | undefined, digits = 3) => v == null ? "—" : v.toFixed(digits);
 
     /** What a higher value means, per parameter. */
@@ -123,7 +130,7 @@
         timbre: "brighter"
     };
 
-    /** Pieces in the order the reader needs them: the least telling comparisons first. */
+    /** Pieces, optionally sorted by τ minus floor (ascending). */
     let pairRows = $derived.by(() => {
         const rows = [...(pair?.pieces ?? [])];
         if (!sortByMargin) return rows;
@@ -149,10 +156,11 @@
         return `${difference.first.toFixed(digits)} vs ${difference.second.toFixed(digits)} ${unitOf(difference.parameter)}`.trim();
     }
 
-    /** Which recording reads higher, spelled out so that the exported file needs no key. */
+    /** Label of the recording that reads higher. */
     const higherIn = (difference: { value: number; parameter: string }) =>
         `${pairLabels[difference.value > 0 ? 0 : 1]} ${direction[difference.parameter] ?? "higher"}`;
 
+    /** τ minus floor of a row. */
     const margin = (row: { tau?: Record<string, number | null>; floor?: Record<string, number | null> }) =>
         row.tau?.combined != null && row.floor?.combined != null ? row.tau.combined - row.floor.combined : null;
 
@@ -163,11 +171,10 @@
     ));
 
     const pieceHeaders = ["Piece", "Title", "Tau", "Floor", "Tau minus floor", "Cost per beat",
-                          "Off diagonal share", "Longest run", "Beats (first)", "Beats (second)", "Not compared"];
+                          "Beats (first)", "Beats (second)", "Not compared"];
     let pieceCsv = $derived(pairRows.map(r =>
         [r.piece, r.title, r.tau?.combined ?? null, r.floor?.combined ?? null, margin(r),
-         r.normalizedDistance ?? null, r.path?.offDiagonalShare ?? null, r.path?.longestRun ?? null,
-         r.beats?.[0] ?? null, r.beats?.[1] ?? null, r.reason]
+         r.normalizedDistance ?? null, r.beats?.[0] ?? null, r.beats?.[1] ?? null, r.reason]
     ));
 
     const parameterHeaders = ["Parameter", "Tau", "Floor", "Difference"];
@@ -181,8 +188,11 @@
         });
     });
 
+    /** Opens the details of a pair, computed with the settings of the displayed result. */
     async function showPairDetails(source: number, target: number) {
-        const performances = [source, target].map(i => pageState.selectedPerformances[i]);
+        const generated = pageState.generated;
+        if (!generated) return;
+        const performances = [source, target].map(i => generated.performances[i]);
         if (performances.some(p => !p)) return;
 
         pair = null;
@@ -191,7 +201,7 @@
         pairLoading = true;
         pairDialog?.showModal();
         try {
-            pair = await fetchPairAnalysis(analysisParams(performances.map(p => p.path)));
+            pair = await fetchPairAnalysis({ ...generated.params, paths: performances.map(p => p.path) });
         } catch (e: any) {
             pairError = e.message;
             console.error(e);
@@ -208,8 +218,9 @@
         pageState.selectedPerformances = newSelection;
     }
 
+    /** Runs the analysis with progress and builds nodes, links and matrix. */
     async function generateNetwork() {
-        // Say why nothing happens, rather than returning in silence.
+        // Report missing selections.
         if (!pageState.analysisScope) return;
         if (pageState.selectedPerformances.length === 0) {
             error = "Select at least one recording.";
@@ -228,19 +239,24 @@
         loading = true;
         progress = null;
         progressStarted = Date.now();
+        const performances = [...pageState.selectedPerformances];
+        const params = $state.snapshot(analysisParams(performances.map(p => p.path))) as DtwAnalysisParams;
         try {
             const result = await runDtwAnalysisStreamed(
-                analysisParams(pageState.selectedPerformances.map(p => p.path)),
+                params,
                 update => {
-                    // Each step has its own pace, so the estimate starts afresh with it.
+                    // Restart the estimate when the step changes.
                     if (progress?.stage !== update.stage) progressStarted = Date.now();
                     progress = update;
                 }
             );
 
-            const newNodes = pageState.selectedPerformances.map((performance, i) => ({
+            const newNodes = performances.map((performance, i) => ({
                 id: i,
-                label: performance.label
+                label: performance.label,
+                lines: [performance.year, performance.pianist, performance.city]
+                    .filter(v => v != null && v !== "")
+                    .map(String)
             }));
 
             const newLinks: { source: number; target: number; distance: number; cost: number; tau: number | null }[] = [];
@@ -251,11 +267,12 @@
                     newLinks.push({ source: i, target: j, distance, cost: result.matrix[i][j] as number, tau: result.correlationMatrix[i][j] });
                 }
             }
+            pageState.generated = { params, performances };
             pageState.nodes = newNodes;
             pageState.links = newLinks;
-            // The matrix keeps the refused pairs as nulls, which the links
-            // cannot carry — the triangle shows them as gaps.
+            // Matrix including refused pairs (null).
             pageState.matrix = result.normalizedMatrix;
+            pageState.tauMatrix = result.correlationMatrix;
             pageState.matrixLabels = newNodes.map(node => node.label ?? String(node.id));
             pageState.warnings = (result.warnings ?? []).map(w => ({
                 pair: w.performances.map(p =>
@@ -274,6 +291,7 @@
         }
     }
 
+    // Songs and performances.
     onMount(async () => {
         if (pageState.pieces.length > 0 && pageState.allPerformances.length > 0) return;
         try {
@@ -314,11 +332,11 @@
             </div>
             {/if}
 
-            <!-- Only the network is drawn from these; the matrix ignores them. -->
+            <!-- Network display settings. -->
             {#if graphFinished && pageState.active === "network"}
             <div class="card w-full bg-base-200 p-4 shadow-md justify-start">
                 <label>Node size
-                    <input type="range" min="1" max="20" value={pageState.nodeSize} class="range range-s range-primary"
+                    <input type="range" min="10" max="50" value={pageState.nodeSize} class="range range-s range-primary"
                     onchange={(e) => { pageState.nodeSize = Number(e.currentTarget.value)}}
                     oninput={(e) => {nodeSizeLabel = Number(e.currentTarget.value)}}/>
                     <span class="font-bold">{nodeSizeLabel}</span>
@@ -333,6 +351,8 @@
                         <option value="context">recording context</option>
                     </select>
                 </label>
+                <button class={`btn btn-sm btn-block mt-2 ${pageState.showLabels ? "btn-primary" : "bg-base-300"}`}
+                    onclick={toggleLabels}>Show node labels</button>
                 <label>Link width
                     <input type="range" min="2" max="50" value={pageState.linkWidth} class="range range-s range-primary"
                     onchange={(e) => { pageState.linkWidth = Number(e.currentTarget.value)}}
@@ -407,8 +427,8 @@
             <div class="alert alert-warning mb-4 flex-col items-start">
                 <span class="font-semibold">
                     {pageState.warnings.length}
-                    {pageState.warnings.length === 1 ? 'Paar wurde' : 'Paare wurden'}
-                    nicht verglichen — die Aufnahmen decken sich nicht.
+                    {pageState.warnings.length === 1 ? 'pair was' : 'pairs were'}
+                    not compared because the recordings do not line up.
                 </span>
                 <ul class="text-sm list-disc pl-5">
                     {#each pageState.warnings as warning}
@@ -436,9 +456,9 @@
                     {/if}
                 </div>
             {:else if pageState.active === "matrix"}
-                <DtwMatrix matrix={pageState.matrix} labels={pageState.matrixLabels} onSelectPair={showPairDetails} />
+                <DtwMatrix matrix={pageState.matrix} tauMatrix={pageState.tauMatrix} labels={pageState.matrixLabels} onSelectPair={showPairDetails} />
             {:else}
-                <DtwNetwork links={pageState.links} nodes={pageState.nodes} bind:linkWidth={pageState.linkWidth} bind:nodeSize={pageState.nodeSize} onMoreInfo={showPairDetails} nodeColours={nodeStyling.colours} legend={nodeStyling.legend} />
+                <DtwNetwork links={pageState.links} nodes={pageState.nodes} bind:linkWidth={pageState.linkWidth} bind:nodeSize={pageState.nodeSize} onMoreInfo={showPairDetails} nodeColours={nodeStyling.colours} legend={nodeStyling.legend} showLabels={pageState.showLabels} />
             {/if}
         </div>
     </main>
@@ -464,9 +484,8 @@
                     {pair.total.piecesCompared === 1 ? "piece" : "pieces"}
                 </p>
                 <p class="text-xs opacity-70 mt-1">
-                    The floor is what this music would yield without any real correspondence: the same
-                    two series, one of them rotated. Only the distance between τ and the floor
-                    carries information, and it cannot be compared between pieces.
+                    The floor is what this music would yield without any real correspondence. It is the result of comparing the same
+                    two series, one of them rotated. Only the distance between τ and the floor carries meaningful information.
                 </p>
 
                 {#if pair.differences.length > 0}
@@ -475,10 +494,8 @@
                         <CsvTable headers={differenceHeaders} rows={differenceCsv} filename="pair-differences" />
                     </div>
                     <p class="text-xs opacity-70">
-                        Stretches of about eight beats, measured along the same path, in units of the
-                        normalization's scale, at most ten per parameter. The parameters are listed separately because their scale
-                        units do not mean the same thing. "Measured" gives both recordings' mean
-                        over the same stretch in their own unit, in the order of the heading above.
+                        Stretches of about eight beats, measured along the same path, in units of the normalization's scale, max. ten per parameter. 
+                        "Measured" gives both recordings' mean over the same stretch in their own unit, in the order of the heading above.
                     </p>
                     <div class="overflow-x-auto max-h-80">
                         <table class="table table-sm table-pin-rows mt-1">
@@ -509,7 +526,7 @@
                 {/if}
 
                 {#if pair.pieces.length === 1 && pair.pieces[0].usable}
-                    <!-- A single piece: the parameters are the interesting breakdown. -->
+                    <!-- Single piece: per-parameter table. -->
                     <div class="flex items-center justify-between mt-4 gap-4">
                         <h4 class="font-semibold">Correlation per parameter</h4>
                         <CsvTable headers={parameterHeaders} rows={parameterCsv} filename="pair-parameters" />
@@ -532,13 +549,10 @@
                         </tbody>
                     </table>
                     <p class="text-sm mt-2">
-                        Beats: {pair.pieces[0].beats?.join(" vs ")} ·
-                        path off the diagonal for {((pair.pieces[0].path?.offDiagonalShare ?? 0) * 100).toFixed(0)}%
-                        of its steps, at most {pair.pieces[0].path?.maxOffset} beats,
-                        longest unbroken stretch {pair.pieces[0].path?.longestRun} steps
+                        Beats: {pair.pieces[0].beats?.join(" vs ")}
                     </p>
                 {:else}
-                    <!-- A whole cycle: one figure hides which songs carry it. -->
+                    <!-- Several pieces: per-piece table. -->
                     <div class="flex items-center justify-between mt-4 gap-4">
                         <h4 class="font-semibold">Correlation per piece</h4>
                         <div class="flex gap-2">
@@ -557,7 +571,6 @@
                                     <th class="text-right">Floor</th>
                                     <th class="text-right">τ − floor</th>
                                     <th class="text-right">Cost per beat</th>
-                                    <th class="text-right">Off diagonal</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -573,9 +586,8 @@
                                                 {tau != null && floor != null ? fmt(tau - floor) : "—"}
                                             </td>
                                             <td class="text-right">{fmt(row.normalizedDistance)}</td>
-                                            <td class="text-right">{((row.path?.offDiagonalShare ?? 0) * 100).toFixed(0)}%</td>
                                         {:else}
-                                            <td class="text-warning" colspan="5">not compared — {row.reason}</td>
+                                            <td class="text-warning" colspan="4">not compared — {row.reason}</td>
                                         {/if}
                                     </tr>
                                 {/each}

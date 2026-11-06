@@ -24,11 +24,7 @@ export function zScoreToUnit(z: number, clamp = 2): number {
     return (clamped + clamp) / (2 * clamp);
 }
 
-/**
- * Per-beat dynamics expressed as a [0,1] unit value: how far this beat's raw
- * dB value sits from the reference recording/piece's own centre (mean by
- * default), divided by the corpus-wide scale figure and clamped.
- */
+/** Per-beat dynamics as [0,1]: deviation from the reference centre in scale units, clamped. */
 export function computeDynamicsUnit(rows: PerformanceRow[], reference: NormalizationReference | null): number[] {
     const center = reference?.dynamics?.center;
     const scale = reference?.dynamics?.scale;
@@ -40,10 +36,7 @@ export function computeDynamicsUnit(rows: PerformanceRow[], reference: Normaliza
     });
 }
 
-/**
- * Per-beat timbre expressed as a [0,1] unit value, same idea as
- * computeDynamicsUnit but on log-transformed spectral centroid.
- */
+/** Per-beat timbre as [0,1], from the log spectral centroid. */
 export function computeTimbreUnit(rows: PerformanceRow[], reference: NormalizationReference | null): number[] {
     const logCenter = reference?.timbre?.logCenter;
     const scale = reference?.timbre?.scale;

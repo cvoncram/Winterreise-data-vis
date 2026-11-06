@@ -17,15 +17,13 @@ router = APIRouter()
 
 @router.get("/db/stats/corpus")
 def get_corpus():
+    """Corpus statistics."""
     return get_corpus_stats()
 
 
 @router.get("/db/stats/performances")
 def get_performance_stats(performance: str):
-    """
-    Means and medians for one recording. Scoped to a single recording rather than the
-    whole corpus, since each one is a separate file in the database repo.
-    """
+    """Statistics of one recording."""
     if not is_safe_folder_name(performance):
         raise HTTPException(status_code=400, detail="Invalid performance path")
     stats = get_recording_stats(performance)
@@ -44,6 +42,7 @@ def get_stats_report():
 def get_normalization_reference_route(
     performance: str, piece: int, method: Literal["mean", "median"] = "mean"
 ):
+    """Centres and scales for one performance and song."""
     if not is_safe_folder_name(performance):
         raise HTTPException(status_code=400, detail="Invalid performance path")
     return get_normalization_reference(performance, piece, scope="piece", method=method)
@@ -51,12 +50,7 @@ def get_normalization_reference_route(
 
 @router.post("/db/stats/refresh")
 def refresh():
-    """
-    Drop the process caches so the next read picks up freshly built
-    statistics and freshly pushed performance data without waiting for them
-    to expire. The statistics themselves are built in the database
-    repository, not here.
-    """
+    """Empty the statistics and file caches."""
     clear_cache()
     clear_file_cache()
     return {"cleared": True}

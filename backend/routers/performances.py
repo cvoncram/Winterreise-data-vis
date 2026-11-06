@@ -18,7 +18,7 @@ _MISSING = {"no value", "unknown", "unclear", "", " "}
 
 def _normalize(s: str) -> str:
     """
-    Normalize to NFC so accented characters compare equal regardless of whether they arrived precomposed (e.g. macOS-typed text) or decomposed.
+    Unicode NFC normalization.
     """
     return unicodedata.normalize("NFC", s)
 
@@ -57,6 +57,7 @@ def _disambiguate_performance(folder_name: str, candidates: list[dict]) -> tuple
     return remaining[0], True
 
 def _date_nice(day, month, year):
+    """Readable date, marking missing day or month."""
     date = ""
     if year not in _MISSING:
         date += str(year)
@@ -73,10 +74,12 @@ def _date_nice(day, month, year):
     return date
 
 def _name_nice(name: str) -> str:
+    """"Last, First" as "First Last"."""
     last, _, first = name.partition(",")
     return f"{first.strip()} {last.strip()}".strip()
 
 def _disentangle_coordinates(coords: str) -> list[float]:
+    """Latitude and longitude from "lat, lon"."""
     latitude, _, longitude = coords.partition(",")
     return (float(latitude.strip()), float(longitude.strip()))
 
@@ -128,9 +131,7 @@ def list_performances():
         enriched.append({
             "path": folder_name,
             "label": label,
-            # Carried along so that a visualization can colour by them: the
-            # folder is the only place where recording and metadata meet, and
-            # the match is worked out here already.
+            # Metadata for colouring.
             "year": year,
             "pianist": pianist,
             "city": city,

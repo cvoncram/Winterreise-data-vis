@@ -28,7 +28,7 @@ def _rows_for_performance(
 
 
 def _validate_request(paths, parameters, weights, scope, piece, half, start, start_beat, end, end_beat):
-    """Everything both analysis endpoints need to agree on before fetching anything."""
+    """Parameter checks shared by the analysis endpoints."""
     if not parameters:
         raise HTTPException(status_code=400, detail="parameters is required")
     if weights is not None and len(weights) != len(parameters):
@@ -51,7 +51,7 @@ def _validate_request(paths, parameters, weights, scope, piece, half, start, sta
 def _sequences(
     paths, parameters, scope, piece, half, start, start_beat, end, end_beat, normalization
 ) -> tuple:
-    """Sequences and measure labels, for callers that do not follow progress."""
+    """Sequences, measure labels and raw values, without progress updates."""
     for update in _sequences_iter(
         paths, parameters, scope, piece, half, start, start_beat, end, end_beat, normalization
     ):
@@ -64,18 +64,8 @@ def _sequences_iter(
     paths, parameters, scope, piece, half, start, start_beat, end, end_beat, normalization
 ):
     """
-    One normalized sequence per recording and piece, ready to be aligned,
-    and the measure label of every beat that went into it.
-
-    Kept as a helper because the network and the detail view of a single pair
-    have to see exactly the same data; a difference between them would show
-    up as two numbers for the same comparison. The labels are what lets the
-    detail view name a place in the score instead of a beat number.
-
-    Handed out as progress updates, because every file is a separate request
-    to GitHub: a whole cycle for 26 recordings means several hundred of them,
-    and that, not the computation, is what the waiting consists of. The last
-    item carries the finished sequences and labels.
+    Normalized sequences, measure labels and raw values per recording and piece,
+    as progress updates; the last item carries the data.
     """
     if scope in ("piece", "measures"):
         pieces = [piece]
@@ -84,14 +74,9 @@ def _sequences_iter(
     else:  # cycle
         pieces = list(range(1, len(TITLES) + 1))
 
-    # cycle/halfCycle span many pieces per performance, and not every
-    # recording covers every piece of the cycle — missing pieces are
-    # skipped rather than failing the whole request.
+    # Missing pieces are skipped in cycle/halfCycle scope.
     skip_missing = scope in ("cycle", "halfCycle")
 
-    # Rows are kept per piece rather than concatenated: the alignment runs
-    # separately for each piece, so that it cannot run across the boundary
-    # between two songs.
     performances = []
     fetched = 0
     total_files = len(paths) * len(pieces)
@@ -113,11 +98,7 @@ def _sequences_iter(
         performances.append(rows_by_piece)
 
     def _is_usable(r, kind: str) -> bool:
-        # The parser already rejects what cannot be measured — non-numeric
-        # dynamics readings and infinities alike. Tempo and timbre are
-        # log-transformed, so a zero has to go as well: normalize_series would
-        # otherwise drop it from that one parameter only, and the parameters
-        # would no longer line up beat by beat.
+        """Present, and positive for the log-transformed parameters."""
         value = r.get(kind)
         return value is not None and (kind == "dynamics" or value > 0)
 
@@ -143,8 +124,7 @@ def _sequences_iter(
                 np.stack(dims, axis=1) if dims else np.empty((0, len(parameters)))
             )
             measures_by_piece[p] = [r["measure"] for r in selected_rows]
-            # Kept untransformed as well, so that a difference can be given in
-            # beats per minute and decibels and not only in scale units.
+            # Untransformed values.
             raw_by_piece[p] = {
                 kind: [r[kind] for r in selected_rows] for kind in parameters
             }
@@ -158,11 +138,7 @@ def _sequences_iter(
 def _analysis_events(
     paths, parameters, metric, weights, normalization, scope, piece, half, start, start_beat, end, end_beat
 ):
-    """
-    The network analysis as a sequence of progress updates, the last of which
-    carries the finished result. Both the plain endpoint and the streaming
-    one go through it, so that they cannot drift apart.
-    """
+    """Network analysis as progress updates; the last item carries the result."""
     sequences = []
     for update in _sequences_iter(
         paths, parameters, scope, piece, half, start, start_beat, end, end_beat, normalization
@@ -172,8 +148,6 @@ def _analysis_events(
         else:
             yield update
 
-    # Mahalanobis without this would measure against the spread of whatever
-    # was selected, so the same pair would come out differently in another run.
     covariance = get_covariance(piece, scope, parameters, normalization) if metric == "mahalanobis" else None
 
     for update in combined_dtw_matrix_iter(sequences, metric, weights, covariance):
@@ -182,8 +156,7 @@ def _analysis_events(
             continue
 
         result = update["result"]
-        # Warnings carry positional indices; name the recordings so the
-        # message is readable without the caller having to map them back.
+        # Recording names for the warnings.
         for warning in result["warnings"]:
             warning["performances"] = [paths[warning["i"]], paths[warning["j"]]]
 
@@ -213,6 +186,7 @@ def calculate_dtw(
     end: Optional[int] = None,
     end_beat: Optional[int] = None,
 ):
+    """Distance and tau matrices of the selected performances."""
     _validate_request(paths, parameters, weights, scope, piece, half, start, start_beat, end, end_beat)
     for update in _analysis_events(
         paths, parameters, metric, weights, normalization, scope, piece, half, start, start_beat, end, end_beat
@@ -237,14 +211,11 @@ def stream_dtw(
     end: Optional[int] = None,
     end_beat: Optional[int] = None,
 ):
-    """
-    The same analysis as /db/analysis, sent as server-sent events so that the
-    browser can show how far it has got. Every event is one JSON object:
-    either a progress update, the result, or an error.
-    """
+    """/db/analysis as server-sent events: progress updates, then the result or an error."""
     _validate_request(paths, parameters, weights, scope, piece, half, start, start_beat, end, end_beat)
 
     def events():
+        """Analysis updates as server-sent events."""
         try:
             for update in _analysis_events(
                 paths, parameters, metric, weights, normalization, scope, piece, half,
@@ -252,9 +223,7 @@ def stream_dtw(
             ):
                 yield f"data: {json.dumps(update)}\n\n"
         except Exception as error:
-            # Once the response has begun there is no status code left to set,
-            # so a failure has to travel as an event of its own; otherwise the
-            # browser would only see the stream close and could not say why.
+            # Error event.
             yield f"data: {json.dumps({'error': str(error)})}\n\n"
 
     return StreamingResponse(
@@ -279,10 +248,7 @@ def analyse_pair(
     end: Optional[int] = None,
     end_beat: Optional[int] = None,
 ):
-    """
-    One link of the network taken apart: the same comparison the matrix
-    shows, but piece by piece and with the floor each piece produces anyway.
-    """
+    """Per-piece breakdown of one pair of recordings."""
     if len(paths) != 2:
         raise HTTPException(status_code=400, detail="exactly two paths are required")
     _validate_request(paths, parameters, weights, scope, piece, half, start, start_beat, end, end_beat)

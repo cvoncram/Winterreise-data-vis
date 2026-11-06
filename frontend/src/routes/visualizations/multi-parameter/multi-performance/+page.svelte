@@ -15,9 +15,7 @@
 
     let ribbonList: HTMLDivElement | undefined = $state();
 
-    /**
-     * Report where the first ribbon ended up, which is what starts the morph.
-     */
+    /** Reports the first ribbon's position to the morph overlay. */
     $effect(() => {
         if (!morph.active || morph.to || !ribbonList) return;
         void pageState.selectedPerformances.length;
@@ -34,6 +32,7 @@
         ))
     );
 
+    /** Song number, taken from the file name of the handed-over passage. */
     const nbInOrder = (() => {
         const piecePathSplit = selection.piecePath.split("_");
         return Number(piecePathSplit[piecePathSplit.length - 3]) ?? 0
@@ -42,6 +41,7 @@
     let error = $state('');
     let loading = $state(false);
 
+    /** Sets the passage from the semicircular ribbon as the locked first performance; fetches its normalization reference if missing. */
     function applySelection() {
         const fullPath = selection.piecePath;
         const folderName = fullPath.split("/")[1];
@@ -68,6 +68,7 @@
             .catch(e => console.error(e));
     }
 
+    /** Shows or hides the score of the selected measures. */
     async function displayScore() {
         pageState.showScore = !pageState.showScore;
         if (pageState.showScore) {
@@ -82,6 +83,7 @@
         }
     }
 
+    // Performance list, then the passage handed over from the ribbon page.
     onMount(async () => {
         try {
             if (pageState.allPerformances.length === 0) {
@@ -106,6 +108,7 @@
         }
     });
 
+    /** Beats, metadata and normalization reference of the selected passage, per performance. */
     async function fetchPerformanceData(paths: string[]) {
         error = '';
 
@@ -145,6 +148,7 @@
         }
     }
 
+    /** Loads newly added performances, keeps loaded ones, the locked performance first. */
     async function handlePerformancesChange(newSelection: CyclePerformance[]) {
         const existingPaths = new Set(pageState.selectedPerformances.map(p => p.path));
         const newPaths = newSelection
@@ -238,7 +242,7 @@
     </aside>
 
     <main class="flex-1 flex gap-4 p-6 overflow-hidden min-h-screen">
-        <!-- The morph overlay stands in for the first ribbon until it lands. -->
+        <!-- Morph overlay in place of the first ribbon. -->
         <div class="w-[50%] overflow-auto" bind:this={ribbonList}
              style:opacity={morph.active ? 0 : 1}>
             {#each pageState.selectedPerformances as performance (performance.path)}

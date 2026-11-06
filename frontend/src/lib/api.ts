@@ -81,9 +81,8 @@ export interface PairPieceRow {
 	normalizedDistance?: number;
 	/** Keyed by parameter name, plus "combined". */
 	tau?: Record<string, number | null>;
-	/** What this piece yields without any real correspondence — read tau against it. */
+	/** τ of rotated series (no real correspondence). */
 	floor?: Record<string, number | null>;
-	path?: { offDiagonalShare: number; maxOffset: number; longestRun: number };
 }
 
 /** One stretch where the two recordings pull apart; positive means the first reads higher. */
@@ -133,20 +132,14 @@ function analysisQuery(params: DtwAnalysisParams): URLSearchParams {
 	return search;
 }
 
-/** How far the analysis has got; `stage` says what it is busy with. */
+/** Progress of a streamed analysis. */
 export interface AnalysisProgress {
 	stage: 'fetching' | 'comparing';
 	done: number;
 	total: number;
 }
 
-/**
- * The analysis over a stream, so that the caller can follow its progress.
- *
- * A whole cycle means several hundred files fetched one by one and hundreds
- * of pairs compared; without this the browser sits on an unexplained wait of
- * minutes. The plain runDtwAnalysis stays for callers that do not care.
- */
+/** Network analysis via server-sent events, with progress updates. */
 export function runDtwAnalysisStreamed(
 	params: DtwAnalysisParams,
 	onProgress: (progress: AnalysisProgress) => void
@@ -167,9 +160,7 @@ export function runDtwAnalysisStreamed(
 			}
 		};
 
-		// EventSource reconnects by itself, which would silently start the whole
-		// analysis again; closing it first turns a lost connection into a plain
-		// failure.
+		// Close instead of reconnecting.
 		source.onerror = () => {
 			source.close();
 			reject(new Error('The connection to the analysis was lost'));
@@ -183,7 +174,7 @@ export async function runDtwAnalysis(params: DtwAnalysisParams): Promise<DtwAnal
 	return res.json();
 }
 
-/** The same comparison as one link of the network, taken apart piece by piece. */
+/** Per-piece breakdown of one pair of recordings. */
 export async function fetchPairAnalysis(params: DtwAnalysisParams): Promise<PairAnalysisResult> {
 	const res = await fetch(`/db/analysis/pair?${analysisQuery(params).toString()}`);
 	if (!res.ok) throw new Error('Could not fetch the details of this comparison');

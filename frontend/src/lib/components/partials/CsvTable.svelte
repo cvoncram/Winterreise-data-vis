@@ -1,12 +1,5 @@
 <script lang="ts">
-    /**
-     * Downloads any table as CSV: one header row, then rows of plain values.
-     *
-     * Kept generic because the alternative is a near-identical component per
-     * table. Text is quoted, numbers are written as they are, and a missing
-     * value stays empty rather than becoming a zero, which would read as a
-     * measurement.
-     */
+    /** CSV download for any table; missing values stay empty. */
     let { headers, rows, filename = "table", label = "Download as CSV" }: {
         headers: string[];
         rows: (string | number | null | undefined)[][];
